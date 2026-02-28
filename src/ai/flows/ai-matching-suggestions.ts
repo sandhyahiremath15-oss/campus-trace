@@ -13,11 +13,11 @@ const ItemSchema = z.object({
   title: z.string().describe('Short title of the item.'),
   description: z.string().describe('A detailed description of the item.'),
   category: z.string().describe('The category of the item (e.g., electronics, apparel, stationery).'),
+  type: z.enum(['lost', 'found']).describe('The type of the item (lost or found).'),
   location: z.string().describe('The location associated with the item.'),
   imageUrl: z.string().optional().describe(
     "Optional photo of the item, as a data URI."
   ),
-  type: z.enum(['lost', 'found']).describe('The type of the item (lost or found).'),
   status: z.enum(['open', 'matched', 'closed']).describe('The lifecycle status of the item.'),
 });
 

@@ -18,19 +18,14 @@
           "type": "string",
           "description": "Category of the item (electronics, apparel, etc.)"
         },
-        "location": {
-          "type": "string",
-          "description": "Where the item was lost or found"
-        },
         "type": {
           "type": "string",
           "enum": ["lost", "found"],
           "description": "Whether the item is lost or found"
         },
-        "status": {
+        "location": {
           "type": "string",
-          "enum": ["open", "matched", "closed"],
-          "description": "Lifecycle status of the report"
+          "description": "Where the item was lost or found"
         },
         "imageUrl": {
           "type": "string",
@@ -40,28 +35,25 @@
           "type": "string",
           "description": "The UID of the user who created the report"
         },
-        "posterName": {
+        "status": {
           "type": "string",
-          "description": "Name of the person who reported it"
-        },
-        "posterEmail": {
-          "type": "string",
-          "description": "Email of the person who reported it"
+          "enum": ["open", "matched", "closed"],
+          "description": "Lifecycle status of the report"
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
-          "description": "ISO timestamp of when the report was created"
+          "description": "Firestore server timestamp"
         }
       },
       "required": [
         "title",
         "description",
         "category",
-        "location",
         "type",
-        "status",
+        "location",
         "userId",
+        "status",
         "createdAt"
       ]
     },
@@ -82,8 +74,8 @@
       "description": "A confirmed match between a lost and found item",
       "type": "object",
       "properties": {
-        "lostItemId": { "type": "string" },
-        "foundItemId": { "type": "string" },
+        "lostItemId": { "type": "string", "description": "Reference ID to items collection" },
+        "foundItemId": { "type": "string", "description": "Reference ID to items collection" },
         "matchedAt": { "type": "string", "format": "date-time" },
         "status": {
           "type": "string",

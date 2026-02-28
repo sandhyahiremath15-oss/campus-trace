@@ -8,14 +8,15 @@ export interface CampusItem {
   title: string;
   description: string;
   category: string;
-  location: string;
   type: ItemType;
-  status: ItemStatus;
+  location: string;
   imageUrl?: string;
   userId: string;
-  posterName: string;
-  posterEmail: string;
-  createdAt: string;
+  status: ItemStatus;
+  createdAt: any; // Firestore Timestamp
+  // Extra fields for de-normalization/UI convenience
+  posterName?: string;
+  posterEmail?: string;
 }
 
 export interface UserProfile {
@@ -24,14 +25,14 @@ export interface UserProfile {
   email: string;
   phone?: string;
   profileImage?: string;
-  createdAt: string;
+  createdAt: any; // Firestore Timestamp
 }
 
 export interface ItemMatch {
   id: string;
   lostItemId: string;
   foundItemId: string;
-  matchedAt: string;
+  matchedAt: any; // Firestore Timestamp
   status: MatchStatus;
 }
 

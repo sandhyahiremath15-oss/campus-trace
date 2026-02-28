@@ -14,6 +14,11 @@ interface ItemCardProps {
 export function ItemCard({ item }: ItemCardProps) {
   const isLost = item.type === 'lost';
 
+  // Handle Firestore Timestamp or standard Date string
+  const formattedDate = item.createdAt?.toDate 
+    ? item.createdAt.toDate().toLocaleDateString() 
+    : item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Unknown Date';
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md group">
       <Link href={`/items/${item.id}`}>
@@ -53,12 +58,12 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+            <span>{formattedDate}</span>
           </div>
         </CardContent>
         <CardFooter className="px-4 py-3 border-t bg-muted/30 flex justify-between items-center">
           <span className="text-xs font-medium text-muted-foreground">
-            By {item.posterName}
+            By {item.posterName || 'User'}
           </span>
           <span className="text-primary font-semibold text-xs uppercase tracking-wider">
             Details

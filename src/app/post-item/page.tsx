@@ -3,7 +3,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, Tag, ArrowRight, CheckCircle2, AlertCircle, X, Loader2, Type } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ export default function PostItem() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    type: 'lost',
+    type: 'lost' as 'lost' | 'found',
     title: '',
     description: '',
     category: '',
@@ -59,12 +59,18 @@ export default function PostItem() {
     
     setIsSubmitting(true);
     const itemData = {
-      ...formData,
-      status: 'open',
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+      type: formData.type,
+      location: formData.location,
+      imageUrl: formData.imageUrl,
       userId: user.uid,
+      status: 'open',
+      createdAt: serverTimestamp(),
+      // Adding these for display convenience on details page
       posterName: user.displayName || 'Campus User',
       posterEmail: user.email || '',
-      createdAt: new Date().toISOString(),
     };
 
     try {
@@ -79,17 +85,31 @@ export default function PostItem() {
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
-  if (!user) return <div className="p-8 text-center"><Button onClick={() => router.push('/auth/login')}>Sign In to Post</Button></div>;
+  if (!user) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
+      <div className="text-center space-y-4 bg-white p-8 rounded-2xl border shadow-sm max-w-sm">
+        <h2 className="text-2xl font-black font-headline text-primary">Sign In Required</h2>
+        <p className="text-muted-foreground">You need to be logged in to report a lost or found item.</p>
+        <Button className="w-full" onClick={() => router.push('/auth/login')}>Log In Now</Button>
+      </div>
+    </div>
+  );
 
   if (step === 2) {
     return (
       <div className="min-h-screen flex flex-col bg-background font-body">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-6">
-            <CheckCircle2 className="h-16 w-16 text-accent mx-auto" />
-            <h1 className="text-3xl font-black font-headline text-primary">Report Published!</h1>
-            <Button onClick={() => router.push('/items')}>Browse Listings</Button>
+          <div className="max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-500">
+            <div className="w-20 h-20 bg-accent/20 rounded-full flex items-center justify-center mx-auto text-accent">
+              <CheckCircle2 className="h-12 w-12" />
+            </div>
+            <h1 className="text-4xl font-black font-headline text-primary">Report Published!</h1>
+            <p className="text-muted-foreground text-lg">Your report is now live. We'll scan for potential matches using AI.</p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => router.push('/items')} size="lg" className="h-12">Browse All Listings</Button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard')}>Go to My Dashboard</Button>
+            </div>
           </div>
         </main>
       </div>
@@ -102,52 +122,106 @@ export default function PostItem() {
       <main className="container mx-auto px-4 py-12 max-w-2xl">
         <h1 className="text-4xl font-black font-headline text-primary text-center mb-8">Report an Item</h1>
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border shadow-sm space-y-6">
-          <RadioGroup defaultValue="lost" className="flex gap-4" onValueChange={(val) => setFormData({...formData, type: val as any})}>
-            <div className="flex items-center space-x-2 border p-4 rounded-xl flex-1"><RadioGroupItem value="lost" id="lost" /><Label htmlFor="lost">I lost something</Label></div>
-            <div className="flex items-center space-x-2 border p-4 rounded-xl flex-1"><RadioGroupItem value="found" id="found" /><Label htmlFor="found">I found something</Label></div>
-          </RadioGroup>
+          <div className="space-y-3">
+            <Label className="text-lg font-bold">What happened?</Label>
+            <RadioGroup 
+              defaultValue="lost" 
+              className="grid grid-cols-2 gap-4" 
+              onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}
+            >
+              <div className="flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
+                <RadioGroupItem value="lost" id="lost" />
+                <Label htmlFor="lost" className="cursor-pointer font-bold">I lost something</Label>
+              </div>
+              <div className="flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
+                <RadioGroupItem value="found" id="found" />
+                <Label htmlFor="found" className="cursor-pointer font-bold">I found something</Label>
+              </div>
+            </RadioGroup>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="title">Item Title</Label>
-            <Input id="title" placeholder="E.g., Blue Water Bottle" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+            <Input 
+              id="title" 
+              placeholder="E.g., Blue Hydro Flask Water Bottle" 
+              required 
+              value={formData.title} 
+              onChange={(e) => setFormData({...formData, title: e.target.value})} 
+              className="h-12"
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Detailed Description</Label>
-            <Textarea id="description" placeholder="Any unique marks, brand, color..." required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+            <Textarea 
+              id="description" 
+              placeholder="Mention any unique marks, brand names, colors, or identifying features..." 
+              required 
+              value={formData.description} 
+              onChange={(e) => setFormData({...formData, description: e.target.value})} 
+              className="min-h-[120px]"
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select onValueChange={(val) => setFormData({...formData, category: val})}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <Select required onValueChange={(val) => setFormData({...formData, category: val})}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="electronics">Electronics</SelectItem>
                   <SelectItem value="apparel">Apparel</SelectItem>
                   <SelectItem value="keys">Keys</SelectItem>
                   <SelectItem value="wallets">Wallets</SelectItem>
+                  <SelectItem value="stationery">Stationery</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Location</Label>
-              <Input placeholder="E.g., Library 2nd floor" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+              <Input 
+                placeholder="E.g., Library 2nd floor silent area" 
+                required 
+                value={formData.location} 
+                onChange={(e) => setFormData({...formData, location: e.target.value})} 
+                className="h-12"
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Photo (Optional)</Label>
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/50">
-              {formData.imageUrl ? <div className="relative aspect-video w-full"><Image src={formData.imageUrl} fill className="object-cover rounded-lg" alt="Preview" /></div> : <Camera className="mx-auto h-8 w-8 text-muted-foreground" />}
-              <p className="text-sm mt-2">{formData.imageUrl ? 'Change Photo' : 'Upload Photo'}</p>
+            <div 
+              onClick={() => fileInputRef.current?.click()} 
+              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/50 transition-all flex flex-col items-center gap-2 group"
+            >
+              {formData.imageUrl ? (
+                <div className="relative aspect-video w-full max-w-[300px] border rounded-lg overflow-hidden">
+                  <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" />
+                </div>
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                  <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                </div>
+              )}
+              <p className="text-sm font-medium text-muted-foreground">
+                {formData.imageUrl ? 'Click to change photo' : 'Click to upload a photo of the item'}
+              </p>
+              <p className="text-xs text-muted-foreground/60">Max size 10MB. JPEG, PNG supported.</p>
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
           </div>
 
-          <Button type="submit" className="w-full h-12 bg-accent text-accent-foreground" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Post Listing'}
+          <Button type="submit" className="w-full h-14 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" /> Publishing Report...
+              </span>
+            ) : 'Publish Report'}
           </Button>
         </form>
       </main>
