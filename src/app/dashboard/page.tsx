@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
@@ -50,8 +49,9 @@ export default function Dashboard() {
     return [...myItemsRaw].sort((a, b) => {
       const getTime = (val: any) => {
         if (!val) return 0;
-        if (val.toDate) return val.toDate().getTime();
-        return new Date(val).getTime() || 0;
+        if (typeof val.toDate === 'function') return val.toDate().getTime();
+        const d = new Date(val).getTime();
+        return isNaN(d) ? 0 : d;
       };
       return getTime(b.createdAt) - getTime(a.createdAt);
     });
@@ -79,6 +79,7 @@ export default function Dashboard() {
         }
 
         for (const chunk of chunks) {
+          if (chunk.length === 0) continue;
           const q = query(collection(firestore, 'items'), where(documentId(), 'in', chunk));
           const snap = await getDocs(q);
           snap.forEach(doc => results.push({ id: doc.id, ...doc.data() } as CampusItem));
@@ -91,10 +92,8 @@ export default function Dashboard() {
       }
     };
 
-    if (currentView === 'saved' || savedMapping) {
-      fetchSavedItems();
-    }
-  }, [firestore, savedMapping, currentView]);
+    fetchSavedItems();
+  }, [firestore, savedMapping]);
 
   const handleResolve = async (id: string) => {
     if (!firestore) return;
@@ -115,6 +114,7 @@ export default function Dashboard() {
   };
 
   const handleSignOut = async () => {
+    if (!auth) return;
     try {
       await signOut(auth);
       router.push('/');
@@ -122,6 +122,11 @@ export default function Dashboard() {
       console.error(err);
     }
   };
+
+  const userInitial = useMemo(() => {
+    if (!user) return '?';
+    return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
+  }, [user]);
 
   if (authLoading) {
     return (
@@ -190,7 +195,7 @@ export default function Dashboard() {
                 <Avatar className="h-32 w-32 border-4 border-white ring-1 ring-slate-100 shadow-2xl">
                   <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`} />
                   <AvatarFallback className="bg-primary/10 text-primary text-4xl font-black">
-                    {user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}
+                    {userInitial}
                   </AvatarFallback>
                 </Avatar>
                 <div className="absolute bottom-1 right-1 h-6 w-6 bg-green-500 border-2 border-white rounded-full" />

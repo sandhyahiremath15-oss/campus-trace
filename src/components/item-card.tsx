@@ -84,6 +84,25 @@ export function ItemCard({ item, loading }: ItemCardProps) {
     }
   };
 
+  const formattedDate = useMemo(() => {
+    if (!mounted || !item?.createdAt) return '...';
+    try {
+      const date = typeof item.createdAt.toDate === 'function' 
+        ? item.createdAt.toDate() 
+        : new Date(item.createdAt);
+      
+      if (isNaN(date.getTime())) return 'Recent';
+      
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+    } catch (e) {
+      return 'Recent';
+    }
+  }, [mounted, item?.createdAt]);
+
   if (loading || !item) {
     return (
       <Card className="overflow-hidden border-none shadow-sm bg-white ring-1 ring-slate-100 rounded-[32px]">
@@ -103,13 +122,7 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   }
 
   const isLost = item.type === 'lost';
-  
-  // Prevent hydration mismatch by only formatting date on the client
-  const formattedDate = !mounted ? '...' : (
-    item.createdAt?.toDate 
-      ? item.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-      : item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent'
-  );
+  const posterInitial = (item.posterName?.charAt(0) || 'U').toUpperCase();
 
   return (
     <Card className="overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 group border-none bg-white shadow-xl shadow-slate-200/40 ring-1 ring-slate-200/60 rounded-[32px]">
@@ -178,7 +191,7 @@ export function ItemCard({ item, loading }: ItemCardProps) {
           <div className="flex items-center gap-2.5">
             <Avatar className="h-7 w-7 border-2 border-white shadow-sm">
               <AvatarImage src={`https://picsum.photos/seed/${item.userId}/100/100`} />
-              <AvatarFallback className="text-[8px] font-black">{item.posterName?.charAt(0) || 'U'}</AvatarFallback>
+              <AvatarFallback className="text-[8px] font-black">{posterInitial}</AvatarFallback>
             </Avatar>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
               {item.posterName?.split(' ')[0] || 'User'}

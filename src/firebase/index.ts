@@ -14,7 +14,6 @@ export function initializeFirebase() {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
-      console.warn('Firebase configuration is incomplete. Authentication and database features will be disabled.');
       return { app: null, db: null, auth: null };
     }
 

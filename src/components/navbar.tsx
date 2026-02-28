@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -25,7 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -42,6 +41,7 @@ export function Navbar() {
   ];
 
   const handleSignOut = async () => {
+    if (!auth) return;
     try {
       await signOut(auth);
       toast({
@@ -53,6 +53,11 @@ export function Navbar() {
       console.error("Error signing out:", error);
     }
   };
+
+  const userInitial = useMemo(() => {
+    if (!user) return '?';
+    return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -92,7 +97,7 @@ export function Navbar() {
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10 border border-muted">
                     <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`} />
-                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{userInitial}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
