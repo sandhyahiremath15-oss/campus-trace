@@ -1,17 +1,64 @@
-
 'use client';
 
+import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
-import { MOCK_ITEMS } from '@/lib/mock-data';
 import { ItemCard } from '@/components/item-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Settings, Package, Heart, Bell } from 'lucide-react';
+import { Settings, Package, Heart, Bell, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useFirestore, useCollection, useUser } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { CampusItem } from '@/lib/types';
 
 export default function Dashboard() {
-  // Simulate user's own items
-  const myItems = MOCK_ITEMS.slice(0, 2);
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userItemsQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'items'),
+      where('userId', '==', user.uid),
+      orderBy('datePosted', 'desc')
+    );
+  }, [firestore, user]);
+
+  const { data: myItems, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full text-center space-y-6">
+            <div className="bg-white p-8 rounded-2xl border shadow-sm">
+              <h2 className="text-2xl font-black font-headline text-primary mb-2">Authentication Required</h2>
+              <p className="text-muted-foreground mb-6">Please sign in to view your personal dashboard and manage your reports.</p>
+              <Button className="w-full" onClick={() => router.push('/auth/login')}>
+                Sign In to Your Account
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const activeItems = myItems || [];
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -23,11 +70,11 @@ export default function Dashboard() {
           <aside className="lg:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-2xl border shadow-sm text-center">
               <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-muted">
-                <AvatarImage src="https://picsum.photos/seed/user/200/200" />
-                <AvatarFallback>AS</AvatarFallback>
+                <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`} />
+                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-bold font-headline">Alex Smith</h2>
-              <p className="text-sm text-muted-foreground mb-6">alex.smith@university.edu</p>
+              <h2 className="text-xl font-bold font-headline">{user.displayName || 'Campus User'}</h2>
+              <p className="text-sm text-muted-foreground mb-6">{user.email}</p>
               <Button variant="outline" className="w-full gap-2">
                 <Settings className="h-4 w-4" />
                 Edit Profile
@@ -68,7 +115,11 @@ export default function Dashboard() {
                 <h1 className="text-3xl font-black font-headline text-primary">My Dashboard</h1>
                 <p className="text-muted-foreground">Manage your reports and track potential matches.</p>
               </div>
-              <Button className="bg-accent text-accent-foreground hover:bg-accent/90 px-6">
+              <Button 
+                onClick={() => router.push('/post-item')}
+                className="bg-accent text-accent-foreground hover:bg-accent/90 px-6 gap-2"
+              >
+                <Plus className="h-4 w-4" />
                 Post New Item
               </Button>
             </div>
@@ -76,23 +127,24 @@ export default function Dashboard() {
             <Tabs defaultValue="active" className="w-full">
               <TabsList className="bg-white border p-1 h-12 w-full md:w-auto justify-start gap-2">
                 <TabsTrigger value="active" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full px-6">
-                  Active Listings ({myItems.length})
+                  Active Listings ({activeItems.length})
                 </TabsTrigger>
                 <TabsTrigger value="resolved" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full px-6">
                   Resolved
                 </TabsTrigger>
-                <TabsTrigger value="drafts" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full px-6">
-                  Drafts
-                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="active" className="pt-6">
-                {myItems.length > 0 ? (
+                {itemsLoading ? (
+                  <div className="flex justify-center py-20">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : activeItems.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {myItems.map((item) => (
+                    {activeItems.map((item) => (
                       <div key={item.id} className="relative group">
                         <ItemCard item={item} />
-                        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <Button size="sm" variant="secondary" className="shadow-lg h-8">
                             Edit
                           </Button>
@@ -101,8 +153,12 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-20 bg-white rounded-2xl border border-dashed">
+                  <div className="text-center py-20 bg-white rounded-2xl border border-dashed flex flex-col items-center gap-4">
+                    <Package className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground">You don't have any active listings yet.</p>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/post-item')}>
+                      Post your first report
+                    </Button>
                   </div>
                 )}
               </TabsContent>
@@ -110,12 +166,6 @@ export default function Dashboard() {
               <TabsContent value="resolved" className="pt-6">
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed">
                   <p className="text-muted-foreground">No resolved items yet. Hopefully soon!</p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="drafts" className="pt-6">
-                <div className="text-center py-20 bg-white rounded-2xl border border-dashed">
-                  <p className="text-muted-foreground">No saved drafts.</p>
                 </div>
               </TabsContent>
             </Tabs>
