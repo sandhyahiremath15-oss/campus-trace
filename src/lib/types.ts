@@ -36,4 +36,11 @@ export interface ItemMatch {
   status: MatchStatus;
 }
 
+export interface SavedItem {
+  id: string;
+  userId: string;
+  itemId: string;
+  createdAt: any;
+}
+
 export type Category = 'electronics' | 'apparel' | 'stationery' | 'keys' | 'wallets' | 'other';

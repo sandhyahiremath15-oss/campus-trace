@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -8,7 +9,11 @@ import {
   limit, 
   Firestore,
   Query,
-  DocumentData
+  DocumentData,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDocs
 } from 'firebase/firestore';
 import { CampusItem } from './types';
 
@@ -45,4 +50,38 @@ export function getPotentialMatchesQuery(db: Firestore, itemType: 'lost' | 'foun
     where('status', '==', 'open'),
     limit(20)
   );
+}
+
+/**
+ * Returns a query for items saved by a user.
+ */
+export function getSavedItemsQuery(db: Firestore, userId: string): Query<DocumentData> {
+  return query(
+    collection(db, 'savedItems'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+}
+
+/**
+ * Toggles the saved state of an item for a user.
+ */
+export async function toggleSaveItem(db: Firestore, userId: string, itemId: string) {
+  const saveId = `${userId}_${itemId}`;
+  const saveRef = doc(db, 'savedItems', saveId);
+  
+  const q = query(collection(db, 'savedItems'), where('userId', '==', userId), where('itemId', '==', itemId));
+  const snapshot = await getDocs(q);
+  
+  if (!snapshot.empty) {
+    await deleteDoc(doc(db, 'savedItems', snapshot.docs[0].id));
+    return false; // Unsaved
+  } else {
+    await setDoc(saveRef, {
+      userId,
+      itemId,
+      createdAt: new Date(),
+    });
+    return true; // Saved
+  }
 }
