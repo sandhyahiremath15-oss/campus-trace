@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { MapPin, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,8 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { firebaseConfig } from '@/firebase/config';
 
 export default function Login() {
   const router = useRouter();
@@ -28,15 +30,29 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [configError, setConfigError] = useState(false);
 
   useEffect(() => {
+    // Check if Firebase config is present
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      console.error("Firebase configuration is missing. Check your Vercel Environment Variables.");
+      setConfigError(true);
+    }
+
     if (user && !authLoading) {
       router.push('/dashboard');
     }
   }, [user, authLoading, router]);
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !db) return;
+    if (!auth || !db) {
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Auth service is not available. Please try again later.",
+      });
+      return;
+    }
     setGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     
@@ -62,7 +78,7 @@ export default function Login() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      console.error("Google Sign In Error:", error);
       toast({
         variant: "destructive",
         title: "Sign In Failed",
@@ -75,8 +91,17 @@ export default function Login() {
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Service Unavailable",
+        description: "Firebase Auth not initialized.",
+      });
+      return;
+    }
+    
     setLoading(true);
+    console.log("Attempting sign in for:", email);
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -86,11 +111,23 @@ export default function Login() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      console.error("Email Sign In Error:", error);
+      let errorMessage = "Invalid email or password.";
+      
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password.";
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid credentials. Please check your email and password.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your connection.";
+      }
+
       toast({
         variant: "destructive",
         title: "Sign In Failed",
-        description: "Invalid email or password.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -121,6 +158,16 @@ export default function Login() {
           <p className="text-muted-foreground mt-2">Sign in to manage your lost and found reports.</p>
         </div>
 
+        {configError && (
+          <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Configuration Missing</AlertTitle>
+            <AlertDescription>
+              Firebase environment variables are not set. If you are on Vercel, ensure you've added them in the dashboard.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="bg-white p-6 sm:p-8 rounded-2xl border shadow-xl space-y-6">
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div className="space-y-2">
@@ -135,13 +182,16 @@ export default function Login() {
                   required 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label htmlFor="password">Password</Label>
-                <button type="button" className="text-sm text-primary hover:underline">Forgot password?</button>
+                <button type="button" className="text-sm text-primary hover:underline" onClick={() => toast({ title: "Coming Soon", description: "Password reset functionality is being implemented." })}>
+                  Forgot password?
+                </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -153,12 +203,21 @@ export default function Login() {
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-lg bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-lg bg-primary text-primary-foreground hover:bg-primary/90" 
+              disabled={loading || configError}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-5 w-5" /> Signing In...
+                </span>
+              ) : (
                 <>
                   Sign In
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -178,7 +237,8 @@ export default function Login() {
             variant="outline" 
             className="w-full h-12 border-muted hover:bg-muted/50 gap-2 px-4 text-sm sm:text-base overflow-hidden" 
             onClick={handleGoogleSignIn}
-            disabled={googleLoading}
+            disabled={googleLoading || configError}
+            type="button"
           >
             {googleLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : (
               <>

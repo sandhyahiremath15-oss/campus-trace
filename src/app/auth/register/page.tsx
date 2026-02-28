@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { MapPin, Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,8 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { firebaseConfig } from '@/firebase/config';
 
 export default function Register() {
   const router = useRouter();
@@ -30,8 +32,15 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [configError, setConfigError] = useState(false);
 
   useEffect(() => {
+    // Check if Firebase config is present
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      console.error("Firebase configuration is missing.");
+      setConfigError(true);
+    }
+
     if (user && !authLoading) {
       router.push('/dashboard');
     }
@@ -64,7 +73,7 @@ export default function Register() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      console.error("Google Registration Error:", error);
       toast({
         variant: "destructive",
         title: "Registration Failed",
@@ -78,7 +87,18 @@ export default function Register() {
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !db) return;
+    
+    if (password.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+
     setLoading(true);
+    console.log("Attempting account creation for:", email);
 
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -99,11 +119,21 @@ export default function Register() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error(error);
+      console.error("Registration Error:", error);
+      let errorMessage = "Failed to create account.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "An account with this email already exists.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid university email address.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "The password is too weak.";
+      }
+
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: error.message || "Failed to create account.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -134,6 +164,16 @@ export default function Register() {
           <p className="text-muted-foreground mt-2">Help others and get your things back faster.</p>
         </div>
 
+        {configError && (
+          <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Configuration Missing</AlertTitle>
+            <AlertDescription>
+              Firebase environment variables are missing. Please configure them in your project settings.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="bg-white p-6 sm:p-8 rounded-2xl border shadow-xl space-y-6">
           <form onSubmit={handleEmailSignUp} className="space-y-4">
             <div className="space-y-2">
@@ -147,6 +187,7 @@ export default function Register() {
                   required 
                   value={fullname}
                   onChange={(e) => setFullname(e.target.value)}
+                  autoComplete="name"
                 />
               </div>
             </div>
@@ -162,6 +203,7 @@ export default function Register() {
                   required 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -172,17 +214,26 @@ export default function Register() {
                 <Input 
                   id="password" 
                   type="password" 
-                  placeholder="Min. 8 characters" 
+                  placeholder="Min. 6 characters" 
                   className="pl-10 h-12" 
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-lg bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
-              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-lg bg-primary text-primary-foreground hover:bg-primary/90" 
+              disabled={loading || configError}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin h-5 w-5" /> Creating Account...
+                </span>
+              ) : (
                 <>
                   Create Account
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -202,7 +253,8 @@ export default function Register() {
             variant="outline" 
             className="w-full h-12 border-muted hover:bg-muted/50 gap-2 px-4 text-sm sm:text-base overflow-hidden"
             onClick={handleGoogleSignIn}
-            disabled={googleLoading}
+            disabled={googleLoading || configError}
+            type="button"
           >
             {googleLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : (
               <>
