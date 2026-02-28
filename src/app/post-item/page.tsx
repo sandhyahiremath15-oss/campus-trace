@@ -1,9 +1,8 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, Tag, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, MapPin, Tag, ArrowRight, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,42 +21,76 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   
-  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     status: 'lost',
     description: '',
     category: '',
     location: '',
+    photoDataUri: '',
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please upload an image smaller than 10MB.",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, photoDataUri: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setFormData(prev => ({ ...prev, photoDataUri: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please sign in to post an item.",
+      });
+      return;
+    }
     
-    setLoading(true);
+    setIsSubmitting(true);
 
     const itemData = {
       ...formData,
-      posterName: user?.displayName || 'Campus User',
-      posterEmail: user?.email || 'user@university.edu',
+      posterName: user.displayName || 'Campus User',
+      posterEmail: user.email || 'user@university.edu',
       datePosted: new Date().toISOString(),
-      userId: user?.uid || 'anonymous',
-      photoDataUri: '', // To be implemented with storage later
+      userId: user.uid,
     };
 
     const itemsRef = collection(firestore, 'items');
 
     addDoc(itemsRef, itemData)
       .then(() => {
-        setLoading(false);
+        setIsSubmitting(false);
         setStep(2);
         toast({
           title: "Success!",
@@ -65,7 +98,7 @@ export default function PostItem() {
         });
       })
       .catch(async (serverError) => {
-        setLoading(false);
+        setIsSubmitting(false);
         const permissionError = new FirestorePermissionError({
           path: itemsRef.path,
           operation: 'create',
@@ -74,6 +107,36 @@ export default function PostItem() {
         errorEmitter.emit('permission-error', permissionError);
       });
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background font-body">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full text-center space-y-6">
+            <div className="bg-white p-8 rounded-2xl border shadow-sm">
+              <h2 className="text-2xl font-black font-headline text-primary mb-2">Authentication Required</h2>
+              <p className="text-muted-foreground mb-6">You need to be signed in to report a lost or found item.</p>
+              <Button className="w-full" onClick={() => router.push('/auth/login')}>
+                Sign In to Continue
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (step === 2) {
     return (
@@ -190,13 +253,42 @@ export default function PostItem() {
 
             <div className="space-y-3">
               <Label className="text-lg font-bold">Upload Photo</Label>
-              <div className="border-2 border-dashed rounded-2xl p-12 text-center hover:border-primary/50 transition-colors cursor-pointer group">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                  <Camera className="h-8 w-8" />
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileChange}
+              />
+              
+              {!formData.photoDataUri ? (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed rounded-2xl p-12 text-center hover:border-primary/50 transition-colors cursor-pointer group"
+                >
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Camera className="h-8 w-8" />
+                  </div>
+                  <p className="font-semibold">Click to upload or drag and drop</p>
+                  <p className="text-sm text-muted-foreground">PNG, JPG or JPEG (max. 10MB)</p>
                 </div>
-                <p className="font-semibold">Click to upload or drag and drop</p>
-                <p className="text-sm text-muted-foreground">PNG, JPG or JPEG (max. 10MB)</p>
-              </div>
+              ) : (
+                <div className="relative aspect-video rounded-2xl overflow-hidden border">
+                  <Image 
+                    src={formData.photoDataUri} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover"
+                  />
+                  <button 
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -204,10 +296,19 @@ export default function PostItem() {
             <Button 
               type="submit" 
               className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90"
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? "Publishing..." : "Post Listing Now"}
-              {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  Post Listing Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
           </div>
         </form>
