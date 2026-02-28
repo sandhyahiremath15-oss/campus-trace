@@ -41,8 +41,21 @@ export default function Dashboard() {
     return query(collection(firestore, 'savedItems'), where('userId', '==', user.uid));
   }, [firestore, user]);
 
-  const { data: myItems, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
+  const { data: myItemsRaw, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
   const { data: savedMapping } = useCollection<SavedItem>(savedItemsMappingQuery);
+
+  // Sorting helper
+  const sortedItems = useMemo(() => {
+    if (!myItemsRaw) return [];
+    return [...myItemsRaw].sort((a, b) => {
+      const getTime = (val: any) => {
+        if (!val) return 0;
+        if (val.toDate) return val.toDate().getTime();
+        return new Date(val).getTime() || 0;
+      };
+      return getTime(b.createdAt) - getTime(a.createdAt);
+    });
+  }, [myItemsRaw]);
 
   // Optimized Fetch actual items from saved mapping
   useEffect(() => {
@@ -53,15 +66,13 @@ export default function Dashboard() {
       }
       setSavedLoading(true);
       try {
-        const itemIds = savedMapping.map(m => m.itemId);
-        // Only fetch if we have IDs
+        const itemIds = savedMapping.map(m => m.itemId).filter(Boolean);
         if (itemIds.length === 0) {
           setSavedItemsData([]);
           return;
         }
 
         const results: CampusItem[] = [];
-        // Firestore 'in' query has a limit of 10 items
         const chunks = [];
         for (let i = 0; i < itemIds.length; i += 10) {
           chunks.push(itemIds.slice(i, i + 10));
@@ -163,8 +174,8 @@ export default function Dashboard() {
     );
   }
 
-  const activeItems = (myItems || []).filter(item => item.status === 'open');
-  const resolvedItems = (myItems || []).filter(item => item.status !== 'open');
+  const activeItems = sortedItems.filter(item => item.status === 'open');
+  const resolvedItems = sortedItems.filter(item => item.status !== 'open');
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">

@@ -24,19 +24,18 @@ import { CampusItem } from './types';
  */
 export function getItemsQuery(db: Firestore): Query<DocumentData> {
   return query(
-    collection(db, 'items'),
-    orderBy('createdAt', 'desc')
+    collection(db, 'items')
   );
 }
 
 /**
  * Returns a query for items posted by a specific user.
+ * Simplified to avoid index requirement.
  */
 export function getUserItemsQuery(db: Firestore, userId: string): Query<DocumentData> {
   return query(
     collection(db, 'items'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
 }
 
@@ -58,8 +57,7 @@ export function getPotentialMatchesQuery(db: Firestore, itemType: 'lost' | 'foun
 export function getSavedItemsQuery(db: Firestore, userId: string): Query<DocumentData> {
   return query(
     collection(db, 'savedItems'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
 }
 
