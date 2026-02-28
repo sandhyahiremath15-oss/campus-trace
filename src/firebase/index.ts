@@ -1,7 +1,6 @@
-
 'use client';
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
@@ -11,15 +10,24 @@ let db: Firestore;
 let auth: Auth;
 
 export function initializeFirebase() {
+  // Check if any Firebase config is missing to avoid runtime errors in production
+  const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
+  if (!isConfigValid) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Firebase configuration is incomplete. Check your .env file.');
+    }
+  }
+
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
   } else {
-    app = getApps()[0];
-    db = getFirestore(app);
-    auth = getAuth(app);
+    app = getApp();
   }
+
+  db = getFirestore(app);
+  auth = getAuth(app);
+
   return { app, db, auth };
 }
 
