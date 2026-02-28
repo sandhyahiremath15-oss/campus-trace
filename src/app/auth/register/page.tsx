@@ -1,13 +1,11 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, Loader2, Mail, Lock, User, ChevronRight } from 'lucide-react';
+import { MapPin, Loader2, User, ChevronRight, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -67,11 +65,10 @@ export default function Register() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Google Registration Error:", error);
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: error.message || "Could not register with Google.",
+        description: error.message || "Could not register.",
       });
     } finally {
       setGoogleLoading(false);
@@ -86,7 +83,7 @@ export default function Register() {
       toast({
         variant: "destructive",
         title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        description: "Password must be at least 6 characters.",
       });
       return;
     }
@@ -107,11 +104,10 @@ export default function Register() {
 
       toast({
         title: "Welcome aboard!",
-        description: "Your account has been created successfully.",
+        description: "Your account is active.",
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error("Registration Error:", error);
       toast({
         variant: "destructive",
         title: "Registration Failed",
@@ -124,109 +120,84 @@ export default function Register() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] p-4 md:p-6 font-body">
-      <div className="flex flex-col items-center gap-4 mb-8">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200 group-hover:scale-105 transition-transform">
-            <MapPin className="h-6 w-6" />
-          </div>
-          <span className="text-2xl font-black text-blue-600 font-headline tracking-tighter">CampusTrace</span>
+    <div className="min-h-screen flex flex-col bg-black text-white font-body selection:bg-white selection:text-black">
+      {/* Top Navigation */}
+      <nav className="flex justify-between items-center p-6 md:px-12">
+        <Link href="/" className="flex items-center gap-2">
+          <MapPin className="h-6 w-6 text-white" />
+          <span className="text-xl font-bold tracking-tight">CampusTrace</span>
         </Link>
-      </div>
+        <Link href="/auth/login">
+          <Button variant="outline" className="rounded-full border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold px-6 h-9">
+            Sign In
+          </Button>
+        </Link>
+      </nav>
 
-      <div className="w-full max-w-[440px] bg-white rounded-[24px] p-6 md:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 font-headline">Create your Account</h1>
-          <p className="text-slate-500 mt-2">Join the campus lost & found network</p>
-        </div>
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col items-center justify-center p-6 -mt-12">
+        <div className="w-full max-w-[400px] space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter">Join the Community</h1>
+            <p className="text-white/50 font-medium">Create your CampusTrace profile</p>
+          </div>
 
-        <form onSubmit={handleEmailSignUp} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="fullname" className="text-sm font-semibold text-slate-700 ml-1">Full name</Label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
+          <form onSubmit={handleEmailSignUp} className="space-y-4">
+            <div className="space-y-3">
               <Input 
-                id="fullname" 
-                placeholder="Sandhya" 
-                className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all text-base"
+                placeholder="Full Name" 
+                className="h-14 bg-[#111] border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/30 text-white placeholder:text-white/20 transition-all"
                 required 
                 value={fullname}
                 onChange={(e) => setFullname(e.target.value)}
               />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-semibold text-slate-700 ml-1">Email address</Label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
               <Input 
-                id="email" 
                 type="email" 
-                placeholder="sandhya@gmail.com" 
-                className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all text-base"
+                placeholder="Email Address" 
+                className="h-14 bg-[#111] border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/30 text-white placeholder:text-white/20 transition-all"
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="password" title="At least 6 characters" className="text-sm font-semibold text-slate-700 ml-1">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
               <Input 
-                id="password" 
                 type="password" 
-                placeholder="••••••••" 
-                className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all text-base"
+                placeholder="Password (min. 6 chars)" 
+                className="h-14 bg-[#111] border-white/10 rounded-xl focus:ring-1 focus:ring-white/30 focus:border-white/30 text-white placeholder:text-white/20 transition-all"
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row-reverse items-center justify-between gap-4 pt-4">
             <Button 
               type="submit" 
-              className="w-full sm:w-auto px-8 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold transition-all flex items-center justify-center gap-2 group"
+              className="w-full h-14 rounded-xl bg-white text-black hover:bg-white/90 font-bold transition-all text-base"
               disabled={loading}
             >
-              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
-                <>
-                  Register
-                  <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
+              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Create Account"}
             </Button>
-            
-            <Link href="/auth/login" className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
-              Sign in instead
-            </Link>
-          </div>
+          </form>
 
-          <div className="relative py-6">
+          <div className="relative py-4">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-100"></span>
+              <span className="w-full border-t border-white/10"></span>
             </div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">
-              <span className="bg-white px-4">OR</span>
+            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-[0.2em] text-white/30">
+              <span className="bg-black px-4">OR</span>
             </div>
           </div>
 
           <Button 
             type="button" 
             variant="outline"
-            className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 text-base"
+            className="w-full h-14 rounded-xl border-white/10 bg-transparent text-white font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-3 text-sm"
             onClick={handleGoogleSignIn}
             disabled={googleLoading}
           >
@@ -238,20 +209,26 @@ export default function Register() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                <span className="truncate">Continue with Google Account</span>
+                Continue with Google
               </>
             )}
           </Button>
-        </form>
-      </div>
 
-      <div className="mt-8 text-center text-xs text-slate-400 font-medium">
-        <div className="flex items-center justify-center gap-6">
-          <Link href="#" className="hover:text-slate-600 transition-colors">Privacy Policy</Link>
-          <Link href="#" className="hover:text-slate-600 transition-colors">Terms of Service</Link>
-          <Link href="#" className="hover:text-slate-600 transition-colors">Help Center</Link>
+          <div className="text-center pt-8">
+            <p className="text-white/40 text-sm">
+              Already have an account? <Link href="/auth/login" className="text-white hover:underline font-bold">Log In</Link>
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
+
+      <footer className="p-12 text-center">
+        <div className="flex justify-center gap-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white/30">
+          <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
+          <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
+          <Link href="#" className="hover:text-white transition-colors">Help Center</Link>
+        </div>
+      </footer>
     </div>
   );
 }
