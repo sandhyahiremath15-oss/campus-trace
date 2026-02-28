@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, PlusCircle, LayoutDashboard, User, MapPin, LogOut } from 'lucide-react';
+import { Search, PlusCircle, LayoutDashboard, User, MapPin, LogOut, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@/firebase';
@@ -17,7 +17,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -25,6 +33,7 @@ export function Navbar() {
   const { user } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Browse', href: '/items', icon: Search },
@@ -59,6 +68,7 @@ export function Navbar() {
           </Link>
         </div>
 
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navItems.map((item) => (
             <Link
@@ -75,7 +85,7 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -115,8 +125,8 @@ export function Navbar() {
             </DropdownMenu>
           ) : (
             <>
-              <Link href="/auth/login">
-                <Button variant="ghost" size="sm" className="hidden md:flex gap-2">
+              <Link href="/auth/login" className="hidden sm:block">
+                <Button variant="ghost" size="sm" className="flex gap-2">
                   <User className="h-4 w-4" />
                   Sign In
                 </Button>
@@ -128,6 +138,62 @@ export function Navbar() {
               </Link>
             </>
           )}
+
+          {/* Mobile Menu Toggle */}
+          <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle className="text-left font-headline text-primary">Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-4 mt-8">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-lg font-medium",
+                        pathname === item.href 
+                          ? "bg-primary text-primary-foreground" 
+                          : "hover:bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.name}
+                    </Link>
+                  ))}
+                  {!user && (
+                    <Link
+                      href="/auth/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted text-muted-foreground text-lg font-medium"
+                    >
+                      <User className="h-5 w-5" />
+                      Sign In
+                    </Link>
+                  )}
+                  {user && (
+                    <button
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-destructive/10 text-destructive text-lg font-medium text-left"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      Sign Out
+                    </button>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
