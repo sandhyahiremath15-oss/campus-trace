@@ -1,23 +1,28 @@
 
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { MapPin, User, ChevronLeft, Loader2, Info } from 'lucide-react';
+import { MapPin, User, ChevronLeft, Loader2, Info, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AIMatches } from '@/components/ai-matches';
 import { cn } from '@/lib/utils';
-import { useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, useDoc, useUser } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ItemDetail() {
   const { id } = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
+  const [isResolving, setIsResolving] = useState(false);
   
   const itemDocRef = useMemo(() => {
     if (!firestore || !id) return null;
@@ -25,6 +30,28 @@ export default function ItemDetail() {
   }, [firestore, id]);
 
   const { data: item, loading } = useDoc<CampusItem>(itemDocRef);
+
+  const handleResolve = async () => {
+    if (!firestore || !id || !item) return;
+    setIsResolving(true);
+    try {
+      const docRef = doc(firestore, 'items', id as string);
+      await updateDoc(docRef, { status: 'closed' });
+      toast({
+        title: "Item Resolved!",
+        description: "Your report has been marked as resolved and moved to your history.",
+      });
+    } catch (error) {
+      console.error("Error resolving item:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update item status.",
+      });
+    } finally {
+      setIsResolving(false);
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -46,6 +73,8 @@ export default function ItemDetail() {
   );
 
   const isLost = item.type === 'lost';
+  const isOwner = user?.uid === item.userId;
+  const isOpen = item.status === 'open';
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -73,7 +102,9 @@ export default function ItemDetail() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="secondary" className="px-4 py-1 rounded-full uppercase text-xs font-bold tracking-wider">{item.category}</Badge>
-                <Badge variant="outline" className="px-4 py-1 rounded-full uppercase text-xs font-bold tracking-wider border-primary text-primary">{item.status}</Badge>
+                <Badge variant="outline" className={cn("px-4 py-1 rounded-full uppercase text-xs font-bold tracking-wider", isOpen ? "border-primary text-primary" : "border-muted-foreground text-muted-foreground")}>
+                  {item.status}
+                </Badge>
               </div>
               <h1 className="text-5xl font-black font-headline text-primary leading-tight">{item.title || 'Untitled Report'}</h1>
               <div className="flex items-center gap-2 text-muted-foreground text-lg">
@@ -93,29 +124,58 @@ export default function ItemDetail() {
             </div>
 
             <div className="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
-              <h3 className="text-xl font-black font-headline text-primary">Contact Reporter</h3>
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                  <User className="h-7 w-7" />
+              <h3 className="text-xl font-black font-headline text-primary">
+                {isOwner ? "Manage Your Report" : "Contact Reporter"}
+              </h3>
+              
+              {isOwner ? (
+                <div className="space-y-4">
+                  {isOpen ? (
+                    <Button 
+                      className="w-full h-14 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 flex items-center justify-center gap-2"
+                      onClick={handleResolve}
+                      disabled={isResolving}
+                    >
+                      {isResolving ? <Loader2 className="animate-spin h-6 w-6" /> : <CheckCircle2 className="h-6 w-6" />}
+                      Mark as Resolved
+                    </Button>
+                  ) : (
+                    <div className="p-4 bg-muted/30 border rounded-2xl text-center text-muted-foreground font-medium">
+                      This item has been marked as {item.status}.
+                    </div>
+                  )}
+                  <Button variant="outline" className="w-full h-14 text-lg font-bold" disabled>
+                    Edit Listing
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Posted By</p>
-                  <p className="text-xl font-bold">{item.posterName || 'Anonymous'}</p>
-                </div>
-              </div>
-              <Button className="w-full h-14 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                <a href={`mailto:${item.posterEmail}`}>
-                  Contact via Email
-                </a>
-              </Button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <User className="h-7 w-7" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Posted By</p>
+                      <p className="text-xl font-bold">{item.posterName || 'Anonymous'}</p>
+                    </div>
+                  </div>
+                  <Button className="w-full h-14 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                    <a href={`mailto:${item.posterEmail}`}>
+                      Contact via Email
+                    </a>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* AI Matches Section */}
-        <div className="mt-16">
-          <AIMatches currentItem={item} />
-        </div>
+        {isOpen && (
+          <div className="mt-16">
+            <AIMatches currentItem={item} />
+          </div>
+        )}
       </main>
     </div>
   );

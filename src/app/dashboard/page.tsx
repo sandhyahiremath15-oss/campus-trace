@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -5,15 +6,18 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Package, Heart, Bell, Loader2, Plus } from 'lucide-react';
+import { Settings, Package, Heart, Bell, Loader2, Plus, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { getUserItemsQuery } from '@/lib/db';
 import { CampusItem } from '@/lib/types';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
   const router = useRouter();
+  const { toast } = useToast();
   const { user, loading: authLoading } = useUser();
   const firestore = useFirestore();
 
@@ -23,6 +27,24 @@ export default function Dashboard() {
   }, [firestore, user]);
 
   const { data: myItems, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
+
+  const handleResolve = async (id: string) => {
+    if (!firestore) return;
+    try {
+      const docRef = doc(firestore, 'items', id);
+      await updateDoc(docRef, { status: 'closed' });
+      toast({
+        title: "Resolved",
+        description: "Report marked as closed.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to resolve item.",
+      });
+    }
+  };
 
   if (authLoading) {
     return (
@@ -139,7 +161,18 @@ export default function Dashboard() {
                 ) : activeItems.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {activeItems.map((item) => (
-                      <ItemCard key={item.id} item={item} />
+                      <div key={item.id} className="space-y-3">
+                        <ItemCard item={item} />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full gap-2 text-accent border-accent/20 hover:bg-accent/5"
+                          onClick={() => handleResolve(item.id)}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Quick Resolve
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 ) : (
