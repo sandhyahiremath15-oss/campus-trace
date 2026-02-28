@@ -25,12 +25,10 @@ export default function Login() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   
-  // Pre-filled credentials as requested by user
   const [email, setEmail] = useState('sandhya@gmail.com');
   const [password, setPassword] = useState('sandhya@123');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [configError, setConfigError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -43,7 +41,7 @@ export default function Login() {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: 'Firebase Auth is not initialized. Check your environment variables.',
+        description: 'Firebase Auth is not initialized. Please check your configuration.',
       });
       return;
     }
@@ -84,7 +82,7 @@ export default function Login() {
       } else if (error.code === 'auth/operation-not-allowed') {
         message = "Google Sign-In is not enabled in your Firebase Console.";
       } else if (error.code === 'auth/unauthorized-domain') {
-        message = "This domain is not authorized for Firebase Auth. Add it in the console.";
+        message = "This domain is not authorized. Add it in the Firebase Console Settings.";
       }
       
       toast({
@@ -111,10 +109,14 @@ export default function Login() {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Email Sign In Error:", error);
+      let message = "Invalid email or password.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        message = "Invalid email or password. Please ensure you have registered this account.";
+      }
       toast({
         variant: "destructive",
         title: "Sign In Failed",
-        description: "Invalid email or password. Please create the user in Firebase Console first.",
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -145,16 +147,6 @@ export default function Login() {
           <h1 className="text-2xl font-bold text-slate-900 font-headline">Sign in</h1>
           <p className="text-slate-500 mt-2">Use your CampusTrace Account</p>
         </div>
-
-        {!auth && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Firebase Not Ready</AlertTitle>
-            <AlertDescription>
-              Firebase configuration is missing. Ensure your .env variables are set.
-            </AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleEmailSignIn} className="space-y-4">
           <div className="space-y-1.5">
@@ -195,7 +187,7 @@ export default function Login() {
             <Button 
               type="submit" 
               className="w-full sm:w-auto px-8 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold transition-all flex items-center justify-center gap-2 group"
-              disabled={loading || !auth}
+              disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
                 <>
@@ -224,7 +216,7 @@ export default function Login() {
             variant="outline"
             className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 text-base"
             onClick={handleGoogleSignIn}
-            disabled={googleLoading || !auth}
+            disabled={googleLoading}
           >
             {googleLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (
               <>

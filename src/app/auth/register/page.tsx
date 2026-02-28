@@ -4,11 +4,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, Loader2, Mail, Lock, User, ChevronRight, AlertCircle } from 'lucide-react';
+import { MapPin, Loader2, Mail, Lock, User, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -39,15 +38,7 @@ export default function Register() {
   }, [user, authLoading, router]);
 
   const handleGoogleSignIn = async () => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: 'Firebase Auth is not initialized.',
-      });
-      return;
-    }
-
+    if (!auth) return;
     setGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -77,18 +68,10 @@ export default function Register() {
       router.push('/dashboard');
     } catch (error: any) {
       console.error("Google Registration Error:", error);
-      let message = "Could not register with Google.";
-      
-      if (error.code === 'auth/popup-closed-by-user') {
-        message = "Registration cancelled (popup closed).";
-      } else if (error.code === 'auth/operation-not-allowed') {
-        message = "Google Sign-In is not enabled in your Firebase Console.";
-      }
-      
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: message,
+        description: error.message || "Could not register with Google.",
       });
     } finally {
       setGoogleLoading(false);
@@ -164,16 +147,6 @@ export default function Register() {
           <p className="text-slate-500 mt-2">Join the campus lost & found network</p>
         </div>
 
-        {!auth && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Firebase Not Ready</AlertTitle>
-            <AlertDescription>
-              Firebase configuration is missing. Ensure your .env variables are set.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <form onSubmit={handleEmailSignUp} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="fullname" className="text-sm font-semibold text-slate-700 ml-1">Full name</Label>
@@ -226,7 +199,7 @@ export default function Register() {
             <Button 
               type="submit" 
               className="w-full sm:w-auto px-8 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold transition-all flex items-center justify-center gap-2 group"
-              disabled={loading || !auth}
+              disabled={loading}
             >
               {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (
                 <>
@@ -255,7 +228,7 @@ export default function Register() {
             variant="outline"
             className="w-full h-12 rounded-xl border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 text-base"
             onClick={handleGoogleSignIn}
-            disabled={googleLoading || !auth}
+            disabled={googleLoading}
           >
             {googleLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (
               <>
