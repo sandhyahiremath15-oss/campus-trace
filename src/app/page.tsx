@@ -16,15 +16,21 @@ export default function Home() {
 
   const latestQuery = useMemo(() => {
     if (!firestore) return null;
+    // We remove the 'status' where clause here to avoid index requirement for initial development
     return query(
       collection(firestore, 'items'),
-      where('status', '==', 'open'),
       orderBy('createdAt', 'desc'),
       limit(3)
     );
   }, [firestore]);
 
-  const { data: latestItems, loading } = useCollection<CampusItem>(latestQuery);
+  const { data: rawItems, loading } = useCollection<CampusItem>(latestQuery);
+
+  // Filter for open items in memory
+  const latestItems = useMemo(() => {
+    if (!rawItems) return [];
+    return rawItems.filter(item => item.status === 'open');
+  }, [rawItems]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">

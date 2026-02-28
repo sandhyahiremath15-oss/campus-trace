@@ -18,12 +18,13 @@ import {
 import { CampusItem } from './types';
 
 /**
- * Returns a query for all open items, ordered by creation date.
+ * Returns a query for items. 
+ * Note: We use a simple query to avoid the need for composite indexes.
+ * Filtering by 'status' is handled in memory for the browse page to ensure immediate functionality.
  */
 export function getItemsQuery(db: Firestore): Query<DocumentData> {
   return query(
     collection(db, 'items'),
-    where('status', '==', 'open'),
     orderBy('createdAt', 'desc')
   );
 }
@@ -47,7 +48,6 @@ export function getPotentialMatchesQuery(db: Firestore, itemType: 'lost' | 'foun
   return query(
     collection(db, 'items'),
     where('type', '==', oppositeType),
-    where('status', '==', 'open'),
     limit(20)
   );
 }

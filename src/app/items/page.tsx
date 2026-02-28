@@ -46,13 +46,20 @@ export default function BrowseItems() {
         
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
+      // We filter for 'open' status here to avoid requiring a composite index in Firestore
+      const matchesStatus = item.status === 'open';
       
-      return matchesSearch && matchesCategory && matchesType;
+      return matchesSearch && matchesCategory && matchesType && matchesStatus;
     });
 
     return [...result].sort((a, b) => {
-      const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
-      const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+      const getTime = (val: any) => {
+        if (!val) return 0;
+        if (val.toDate) return val.toDate().getTime();
+        return new Date(val).getTime() || 0;
+      };
+      const dateA = getTime(a.createdAt);
+      const dateB = getTime(b.createdAt);
       return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
   }, [items, searchQuery, categoryFilter, typeFilter, sortBy]);
