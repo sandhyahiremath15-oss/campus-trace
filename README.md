@@ -24,6 +24,23 @@ To run this project on your desktop:
    - Start the web server: `npm run dev`
    - Start the Genkit UI: `npm run genkit:dev`
 
+## Deployment & Git Instructions
+
+To push this project to your own GitHub/GitLab/Bitbucket repository:
+
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin YOUR_REPO_URL
+git push -u origin main
+```
+
+### Vercel Deployment Tips
+- **Environment Variables:** Ensure all `NEXT_PUBLIC_FIREBASE_*` variables and `GOOGLE_GENAI_API_KEY` are added in the Vercel dashboard.
+- **Authorized Domains:** Add your Vercel URL (e.g., `your-project.vercel.app`) to the "Authorized Domains" list in the Firebase Console under Authentication Settings.
+
 ## Tech Stack
 
 - **Framework:** Next.js 15 (App Router)
