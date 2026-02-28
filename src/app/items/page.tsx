@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Search, Tag, SlidersHorizontal, PackageSearch } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Tag, SlidersHorizontal, PackageSearch, Filter, ChevronDown } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,12 +17,14 @@ import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection } from '@/firebase';
 import { getItemsQuery } from '@/lib/db';
 import { CampusItem } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 export default function BrowseItems() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const firestore = useFirestore();
   
@@ -40,13 +41,12 @@ export default function BrowseItems() {
     let result = items.filter(item => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = 
-        item.title.toLowerCase().includes(searchLower) ||
-        item.description.toLowerCase().includes(searchLower) || 
-        item.location.toLowerCase().includes(searchLower);
+        item.title?.toLowerCase().includes(searchLower) ||
+        item.description?.toLowerCase().includes(searchLower) || 
+        item.location?.toLowerCase().includes(searchLower);
         
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
       const matchesType = typeFilter === 'all' || item.type === typeFilter;
-      // We filter for 'open' status here to avoid requiring a composite index in Firestore
       const matchesStatus = item.status === 'open';
       
       return matchesSearch && matchesCategory && matchesType && matchesStatus;
@@ -65,64 +65,68 @@ export default function BrowseItems() {
   }, [items, searchQuery, categoryFilter, typeFilter, sortBy]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-body">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">
       <Navbar />
       
       <main className="container mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="space-y-2">
-            <h1 className="text-5xl font-black font-headline text-slate-900 tracking-tighter">Campus Feed</h1>
-            <p className="text-slate-500 font-medium text-lg">Real-time lost & found community log.</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+          <div className="space-y-1">
+            <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Campus Feed</h1>
+            <p className="text-slate-500 font-medium text-lg">Discover and report lost belongings in real-time.</p>
           </div>
           
-          <div className="w-full md:w-auto flex bg-white p-1.5 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-100">
-            <Button 
-              variant={typeFilter === 'all' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-11 px-8 rounded-xl font-bold transition-all"
+          <div className="flex bg-white p-1 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-100/50">
+            <button 
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                typeFilter === 'all' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:bg-slate-50"
+              )}
               onClick={() => setTypeFilter('all')}
             >
-              All
-            </Button>
-            <Button 
-              variant={typeFilter === 'lost' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-11 px-8 rounded-xl font-bold transition-all"
+              All Items
+            </button>
+            <button 
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                typeFilter === 'lost' ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "text-slate-500 hover:bg-slate-50"
+              )}
               onClick={() => setTypeFilter('lost')}
             >
               Lost
-            </Button>
-            <Button 
-              variant={typeFilter === 'found' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-11 px-8 rounded-xl font-bold transition-all"
+            </button>
+            <button 
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                typeFilter === 'found' ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-slate-500 hover:bg-slate-50"
+              )}
               onClick={() => setTypeFilter('found')}
             >
               Found
-            </Button>
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-12 p-5 bg-white rounded-[32px] shadow-xl shadow-slate-200/40 border border-slate-100 animate-in fade-in zoom-in-95 duration-700 delay-100">
-          <div className="md:col-span-6 relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+        {/* Search & Filter Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-10">
+          <div className="md:col-span-8 relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Search items, keywords, locations..." 
-              className="pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all text-base font-medium"
+              placeholder="Search by title, description or location..." 
+              className="pl-14 h-16 rounded-[24px] border-slate-200 bg-white shadow-xl shadow-slate-200/40 focus:ring-4 focus:ring-primary/5 transition-all text-base"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
-          <div className="md:col-span-3">
+          <div className="md:col-span-4 flex gap-4">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50 font-bold px-6">
+              <SelectTrigger className="h-16 rounded-[24px] border-slate-200 bg-white shadow-xl shadow-slate-200/40 font-bold px-6">
                 <div className="flex items-center gap-3">
                   <Tag className="h-4 w-4 text-slate-400" />
                   <SelectValue placeholder="Category" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="electronics">Electronics</SelectItem>
                 <SelectItem value="apparel">Apparel</SelectItem>
@@ -132,31 +136,30 @@ export default function BrowseItems() {
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          <div className="md:col-span-3">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="h-14 rounded-2xl border-slate-200 bg-slate-50 font-bold px-6">
+              <SelectTrigger className="h-16 w-[180px] rounded-[24px] border-slate-200 bg-white shadow-xl shadow-slate-200/40 font-bold px-6">
                 <div className="flex items-center gap-3">
                   <SlidersHorizontal className="h-4 w-4 text-slate-400" />
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder="Sort" />
                 </div>
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="space-y-8 animate-in fade-in duration-700 delay-200">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-black font-headline text-slate-900 tracking-tight uppercase tracking-widest text-[12px]">
-              Live Results
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 px-2">
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">
+              Live Community Log
             </h2>
-            <Badge variant="secondary" className="rounded-full h-6 px-3 bg-slate-200 text-slate-700 font-bold border-none">
-              {loading ? '...' : filteredItems.length}
+            <div className="h-px flex-1 bg-slate-200" />
+            <Badge variant="secondary" className="rounded-full px-3 py-1 font-bold">
+              {loading ? '...' : filteredItems.length} Reports
             </Badge>
           </div>
 
@@ -171,20 +174,20 @@ export default function BrowseItems() {
               ))}
             </div>
           ) : (
-            <div className="py-40 text-center space-y-6 bg-white rounded-[40px] border border-dashed border-slate-200 shadow-sm animate-in zoom-in-95">
+            <div className="py-40 text-center space-y-6 bg-white rounded-[40px] border border-dashed border-slate-200 shadow-sm">
               <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
                 <PackageSearch className="h-10 w-10" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl font-black font-headline text-slate-900 tracking-tight">Nothing found</h3>
-                <p className="text-slate-400 font-medium max-w-sm mx-auto">Try adjusting your filters or search keywords.</p>
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">No results found</h3>
+                <p className="text-slate-400 font-medium">Try adjusting your keywords or clearing the filters.</p>
               </div>
-              <Button variant="outline" className="h-11 px-8 rounded-xl font-bold border-slate-200" onClick={() => {
+              <Button variant="outline" className="rounded-xl px-8 h-12 font-bold" onClick={() => {
                 setSearchQuery('');
                 setCategoryFilter('all');
                 setTypeFilter('all');
               }}>
-                Clear all filters
+                Clear Filters
               </Button>
             </div>
           )}

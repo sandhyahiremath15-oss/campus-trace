@@ -28,18 +28,19 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Debugging Hydration: Ensure we only render dynamic content after mount
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const savedQuery = useMemo(() => {
-    if (!firestore || !user || !item) return null;
+    if (!firestore || !user || !item?.id) return null;
     return query(
       collection(firestore, 'savedItems'), 
       where('userId', '==', user.uid), 
       where('itemId', '==', item.id)
     );
-  }, [firestore, user, item]);
+  }, [firestore, user, item?.id]);
 
   const { data: savedData } = useCollection(savedQuery);
 
@@ -54,17 +55,14 @@ export function ItemCard({ item, loading }: ItemCardProps) {
     e.stopPropagation();
     if (!user) {
       toast({
-        title: "Login Required",
-        description: "Please sign in to save items.",
+        title: "Sign in required",
+        description: "Join the community to save items.",
       });
       return;
     }
-    if (!item || isSaving || !firestore) return;
+    if (!item?.id || isSaving || !firestore) return;
 
     setIsSaving(true);
-    const previousState = isSaved;
-    setIsSaved(!previousState);
-
     try {
       const saved = await toggleSaveItem(firestore, user.uid, item.id);
       setIsSaved(saved);
@@ -73,33 +71,27 @@ export function ItemCard({ item, loading }: ItemCardProps) {
         description: saved ? "Added to your collection." : "Removed from your collection.",
       });
     } catch (error) {
-      setIsSaved(previousState);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update collection.",
-      });
+      console.error("Save error:", error);
     } finally {
       setIsSaving(false);
     }
   };
 
   const formattedDate = useMemo(() => {
-    if (!mounted || !item?.createdAt) return '...';
+    if (!mounted || !item?.createdAt) return '';
     try {
       const date = typeof item.createdAt.toDate === 'function' 
         ? item.createdAt.toDate() 
         : new Date(item.createdAt);
       
-      if (isNaN(date.getTime())) return 'Recent';
+      if (isNaN(date.getTime())) return 'Recently';
       
       return date.toLocaleDateString('en-US', { 
         month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+        day: 'numeric'
       });
     } catch (e) {
-      return 'Recent';
+      return 'Recently';
     }
   }, [mounted, item?.createdAt]);
 
@@ -122,24 +114,25 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   }
 
   const isLost = item.type === 'lost';
-  const posterInitial = (item.posterName?.charAt(0) || 'U').toUpperCase();
+  const posterInitial = (item.posterName?.charAt(0) || item.posterEmail?.charAt(0) || 'U').toUpperCase();
 
   return (
-    <Card className="overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 group border-none bg-white shadow-xl shadow-slate-200/40 ring-1 ring-slate-200/60 rounded-[32px]">
+    <Card className="overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group border-none bg-white shadow-lg shadow-slate-200/50 ring-1 ring-slate-200/60 rounded-[32px]">
       <Link href={`/items/${item.id}`} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={item.imageUrl || 'https://picsum.photos/seed/item/600/400'}
+            src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
             alt={item.title || 'Campus Item'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
+            data-ai-hint="campus item"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
           
           <Badge
             className={cn(
-              "absolute right-4 top-4 px-4 py-1.5 font-black shadow-2xl z-10 rounded-[12px] uppercase tracking-widest text-[10px]",
-              isLost ? "bg-red-500 hover:bg-red-600 text-white" : "bg-accent text-accent-foreground hover:bg-accent/90"
+              "absolute right-4 top-4 px-4 py-1.5 font-bold shadow-lg z-10 rounded-[12px] uppercase tracking-widest text-[10px]",
+              isLost ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
             )}
           >
             {isLost ? 'Lost' : 'Found'}
@@ -149,57 +142,61 @@ export function ItemCard({ item, loading }: ItemCardProps) {
             onClick={handleSave}
             disabled={isSaving}
             className={cn(
-              "absolute left-4 top-4 h-11 w-11 rounded-[14px] flex items-center justify-center shadow-2xl transition-all z-20 backdrop-blur-md",
+              "absolute left-4 top-4 h-10 w-10 rounded-[12px] flex items-center justify-center shadow-lg transition-all z-20 backdrop-blur-md",
               isSaved 
-                ? "bg-red-500 text-white scale-110" 
-                : "bg-white/90 text-slate-400 hover:text-red-500 hover:bg-white"
+                ? "bg-red-500 text-white" 
+                : "bg-white/80 text-slate-400 hover:text-red-500"
             )}
           >
             {isSaving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Heart className={cn("h-5 w-5 transition-transform", isSaved && "fill-current scale-110")} />
+              <Heart className={cn("h-4 w-4 transition-transform", isSaved && "fill-current scale-110")} />
             )}
           </button>
 
           {item.status !== 'open' && (
-            <Badge variant="secondary" className="absolute left-4 bottom-4 bg-white/90 backdrop-blur-sm text-[10px] font-black border-none shadow-lg text-slate-900 px-4 py-1.5 rounded-[12px] uppercase tracking-widest">
+            <Badge variant="secondary" className="absolute left-4 bottom-4 bg-white/90 backdrop-blur-sm text-[10px] font-black border-none shadow-lg text-slate-900 px-3 py-1 rounded-[10px] uppercase tracking-widest">
               {item.status}
             </Badge>
           )}
         </div>
+        
         <CardHeader className="p-6 pb-2">
-          <div className="flex items-center gap-2 text-[10px] font-black text-primary mb-2 uppercase tracking-[0.2em]">
-            <Tag className="h-3 w-3 text-accent" />
+          <div className="flex items-center gap-2 text-[10px] font-bold text-primary mb-1 uppercase tracking-wider">
+            <Tag className="h-3 w-3" />
             {item.category}
           </div>
-          <h3 className="font-black text-2xl line-clamp-1 leading-tight text-slate-900 group-hover:text-primary transition-colors font-headline tracking-tighter">
+          <h3 className="font-bold text-xl line-clamp-1 leading-tight text-slate-900 group-hover:text-primary transition-colors tracking-tight">
             {item.title || 'Untitled Report'}
           </h3>
         </CardHeader>
-        <CardContent className="px-6 pb-6 pt-0 space-y-4">
-          <div className="flex items-center gap-2.5 text-sm text-slate-500 font-bold">
-            <MapPin className="h-5 w-5 shrink-0 text-accent" />
+        
+        <CardContent className="px-6 pb-4 pt-0 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="line-clamp-1">{item.location}</span>
           </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-400 font-bold uppercase tracking-wider">
-            <Calendar className="h-4 w-4 shrink-0" />
-            <span>{formattedDate}</span>
-          </div>
         </CardContent>
-        <CardFooter className="px-6 py-5 border-t border-slate-50 bg-slate-50/30 flex justify-between items-center group-hover:bg-slate-50 transition-colors">
-          <div className="flex items-center gap-2.5">
-            <Avatar className="h-7 w-7 border-2 border-white shadow-sm">
+        
+        <CardFooter className="px-6 py-4 border-t border-slate-50 flex justify-between items-center bg-slate-50/20">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6 border border-white shadow-sm">
               <AvatarImage src={`https://picsum.photos/seed/${item.userId}/100/100`} />
-              <AvatarFallback className="text-[8px] font-black">{posterInitial}</AvatarFallback>
+              <AvatarFallback className="text-[8px] font-bold">{posterInitial}</AvatarFallback>
             </Avatar>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              {item.posterName?.split(' ')[0] || 'User'}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-700 leading-none">
+                {item.posterName?.split(' ')[0] || 'User'}
+              </span>
+              <span className="text-[9px] text-slate-400 font-medium">
+                {formattedDate}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-primary font-black text-[10px] uppercase tracking-widest">
-            View Details
-            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" />
+          <div className="flex items-center gap-1 text-primary font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+            View
+            <ChevronRight className="h-3 w-3" />
           </div>
         </CardFooter>
       </Link>

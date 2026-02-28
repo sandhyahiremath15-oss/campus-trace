@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Package, Heart, Bell, Plus, CheckCircle2, UserCircle, LogOut } from 'lucide-react';
+import { Settings, Package, Heart, Bell, Plus, CheckCircle2, UserCircle, LogOut, LayoutGrid, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useUser, useAuth } from '@/firebase';
@@ -28,17 +28,18 @@ export default function Dashboard() {
   const [currentView, setCurrentView] = useState<DashboardView>('listings');
   const [savedItemsData, setSavedItemsData] = useState<CampusItem[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [isResolvingId, setIsResolvingId] = useState<string | null>(null);
 
-  // Queries
+  // Debugging Frontend: Stable Query Memoization
   const userItemsQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user?.uid) return null;
     return getUserItemsQuery(firestore, user.uid);
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
   const savedItemsMappingQuery = useMemo(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user?.uid) return null;
     return query(collection(firestore, 'savedItems'), where('userId', '==', user.uid));
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
   const { data: myItemsRaw, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
   const { data: savedMapping } = useCollection<SavedItem>(savedItemsMappingQuery);
@@ -57,7 +58,7 @@ export default function Dashboard() {
     });
   }, [myItemsRaw]);
 
-  // Optimized Fetch actual items from saved mapping
+  // Fetch actual items from saved mapping
   useEffect(() => {
     const fetchSavedItems = async () => {
       if (!firestore || !savedMapping || savedMapping.length === 0) {
@@ -72,6 +73,7 @@ export default function Dashboard() {
           return;
         }
 
+        // Firestore 'in' queries are limited to 10-30 items
         const results: CampusItem[] = [];
         const chunks = [];
         for (let i = 0; i < itemIds.length; i += 10) {
@@ -97,12 +99,13 @@ export default function Dashboard() {
 
   const handleResolve = async (id: string) => {
     if (!firestore) return;
+    setIsResolvingId(id);
     try {
       const docRef = doc(firestore, 'items', id);
       await updateDoc(docRef, { status: 'closed' });
       toast({
-        title: "Resolved",
-        description: "Report marked as closed.",
+        title: "Item Resolved",
+        description: "Your report has been marked as closed.",
       });
     } catch (error) {
       toast({
@@ -110,6 +113,8 @@ export default function Dashboard() {
         title: "Error",
         description: "Failed to resolve item.",
       });
+    } finally {
+      setIsResolvingId(null);
     }
   };
 
@@ -134,19 +139,9 @@ export default function Dashboard() {
         <Navbar />
         <main className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <aside className="lg:col-span-1 space-y-6">
-              <Skeleton className="h-64 w-full rounded-[32px]" />
-              <Skeleton className="h-48 w-full rounded-[32px]" />
-            </aside>
+            <Skeleton className="h-96 w-full rounded-[40px]" />
             <div className="lg:col-span-3 space-y-8">
-              <div className="flex justify-between items-center">
-                <div className="space-y-3">
-                  <Skeleton className="h-14 w-64 rounded-xl" />
-                  <Skeleton className="h-6 w-80 rounded-lg" />
-                </div>
-                <Skeleton className="h-14 w-48 rounded-[20px]" />
-              </div>
-              <Skeleton className="h-16 w-full max-w-md rounded-[24px]" />
+              <Skeleton className="h-20 w-full rounded-[24px]" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {[1, 2, 3, 4].map(i => <ItemCard key={i} loading />)}
               </div>
@@ -162,17 +157,15 @@ export default function Dashboard() {
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
-            <div className="bg-white p-12 rounded-[48px] border shadow-2xl shadow-slate-200/50">
-              <div className="h-24 w-24 bg-primary/10 rounded-[32px] flex items-center justify-center mx-auto mb-8 text-primary">
-                <UserCircle className="h-14 w-14" />
-              </div>
-              <h2 className="text-3xl font-black font-headline text-slate-900 mb-4 tracking-tight">Access Restricted</h2>
-              <p className="text-slate-500 mb-10 leading-relaxed font-medium text-lg">Sign in to manage your campus reports and collections.</p>
-              <Button className="w-full h-16 rounded-[24px] text-lg font-black shadow-xl shadow-primary/20" onClick={() => router.push('/auth/login')}>
-                Sign In Now
-              </Button>
+          <div className="max-w-md w-full glass-card p-12 rounded-[48px] text-center space-y-6">
+            <div className="h-20 w-20 bg-primary/10 rounded-[32px] flex items-center justify-center mx-auto mb-4 text-primary">
+              <UserCircle className="h-10 w-10" />
             </div>
+            <h2 className="text-3xl font-bold tracking-tight">Login Required</h2>
+            <p className="text-slate-500 font-medium">Please sign in to access your personal dashboard.</p>
+            <Button className="w-full h-14 rounded-2xl text-lg font-bold" onClick={() => router.push('/auth/login')}>
+              Sign In
+            </Button>
           </div>
         </main>
       </div>
@@ -183,107 +176,101 @@ export default function Dashboard() {
   const resolvedItems = sortedItems.filter(item => item.status !== 'open');
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-body">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Info */}
-          <aside className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-8 rounded-[40px] border border-slate-200/60 shadow-xl shadow-slate-100/50 text-center animate-in slide-in-from-left-4 duration-500">
+      <main className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Sidebar Navigation */}
+          <aside className="lg:col-span-3 space-y-6">
+            <div className="bg-white p-8 rounded-[40px] border border-slate-200/60 shadow-xl shadow-slate-100/50 text-center">
               <div className="relative inline-block mb-6">
-                <Avatar className="h-32 w-32 border-4 border-white ring-1 ring-slate-100 shadow-2xl">
+                <Avatar className="h-28 w-28 border-4 border-white ring-1 ring-slate-100 shadow-xl">
                   <AvatarImage src={user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-4xl font-black">
+                  <AvatarFallback className="bg-primary/5 text-primary text-3xl font-bold">
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-1 right-1 h-6 w-6 bg-green-500 border-2 border-white rounded-full" />
+                <div className="absolute bottom-1 right-1 h-6 w-6 bg-emerald-500 border-4 border-white rounded-full" />
               </div>
-              <h2 className="text-2xl font-black font-headline text-slate-900 mb-1 tracking-tight truncate px-2">{user.displayName || 'Campus User'}</h2>
-              <p className="text-sm text-slate-400 font-bold mb-8 tracking-tight truncate px-2">{user.email}</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-1 tracking-tight truncate px-2">{user.displayName || 'Campus User'}</h2>
+              <p className="text-xs text-slate-400 font-medium mb-8 tracking-tight truncate px-2">{user.email}</p>
               
               <div className="space-y-3">
-                <Button variant="outline" className="w-full gap-3 rounded-[18px] h-12 font-bold border-slate-200 hover:bg-slate-50 transition-all hover:border-primary/30">
+                <Button variant="outline" className="w-full gap-2 rounded-2xl h-12 font-bold border-slate-200 hover:bg-slate-50">
                   <Settings className="h-4 w-4" />
-                  Settings
+                  Account Settings
                 </Button>
-                <Button variant="ghost" className="w-full gap-3 rounded-[18px] h-12 font-bold text-slate-400 hover:text-red-500 hover:bg-red-50" onClick={handleSignOut}>
+                <Button variant="ghost" className="w-full gap-2 rounded-2xl h-12 font-bold text-slate-400 hover:text-red-500 hover:bg-red-50" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" />
                   Sign Out
                 </Button>
               </div>
             </div>
 
-            <nav className="bg-white rounded-[40px] border border-slate-200/60 shadow-xl shadow-slate-100/50 overflow-hidden">
-              <ul className="p-3 space-y-1">
-                <li>
-                  <button 
-                    onClick={() => setCurrentView('listings')}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-6 py-4 rounded-[24px] text-sm font-black transition-all group",
-                      currentView === 'listings' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:bg-slate-50"
-                    )}
-                  >
-                    <Package className={cn("h-5 w-5", currentView === 'listings' ? "text-white" : "text-slate-400 group-hover:text-primary")} />
-                    My Listings
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => setCurrentView('saved')}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-6 py-4 rounded-[24px] text-sm font-black transition-all group",
-                      currentView === 'saved' ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "text-slate-500 hover:bg-slate-50"
-                    )}
-                  >
-                    <Heart className={cn("h-5 w-5", currentView === 'saved' ? "text-white" : "text-slate-400 group-hover:text-red-500")} />
-                    Saved Items
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => setCurrentView('notifications')}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-6 py-4 rounded-[24px] text-sm font-black transition-all group",
-                      currentView === 'notifications' ? "bg-accent text-accent-foreground shadow-lg shadow-accent/20" : "text-slate-500 hover:bg-slate-50"
-                    )}
-                  >
-                    <Bell className={cn("h-5 w-5", currentView === 'notifications' ? "text-accent-foreground" : "text-slate-400 group-hover:text-accent")} />
-                    Notifications
-                  </button>
-                </li>
-              </ul>
+            <nav className="bg-white rounded-[32px] border border-slate-200/60 shadow-lg shadow-slate-100/50 overflow-hidden p-2">
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setCurrentView('listings')}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl text-sm font-bold transition-all",
+                    currentView === 'listings' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  <Package className="h-4 w-4" />
+                  My Listings
+                </button>
+                <button 
+                  onClick={() => setCurrentView('saved')}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl text-sm font-bold transition-all",
+                    currentView === 'saved' ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  <Heart className="h-4 w-4" />
+                  Saved Items
+                </button>
+                <button 
+                  onClick={() => setCurrentView('notifications')}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl text-sm font-bold transition-all",
+                    currentView === 'notifications' ? "bg-accent text-accent-foreground shadow-lg shadow-accent/20" : "text-slate-500 hover:bg-slate-50"
+                  )}
+                >
+                  <Bell className="h-4 w-4" />
+                  Alerts Center
+                </button>
+              </div>
             </nav>
           </aside>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-10">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-              <div className="space-y-2">
-                <h1 className="text-5xl font-black font-headline text-slate-900 tracking-tighter">
-                  {currentView === 'listings' ? 'Dashboard' : currentView === 'saved' ? 'Collection' : 'Notifications'}
+          {/* Main Content Area */}
+          <div className="lg:col-span-9 space-y-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-1">
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+                  {currentView === 'listings' ? 'Manage Reports' : currentView === 'saved' ? 'My Collections' : 'Notifications'}
                 </h1>
-                <p className="text-slate-500 font-bold text-lg">
-                  {currentView === 'listings' ? 'Manage your active reports and history.' : 'Items you have bookmarked for later.'}
+                <p className="text-slate-500 font-medium">
+                  {currentView === 'listings' ? 'Track your active reports and campus history.' : 'Items you have bookmarked for tracking.'}
                 </p>
               </div>
               <Button 
                 onClick={() => router.push('/post-item')}
-                className="bg-accent text-accent-foreground hover:bg-accent/90 px-10 h-16 rounded-[24px] font-black shadow-2xl shadow-accent/30 gap-3 text-xl transition-transform hover:scale-105 active:scale-95"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 px-8 h-14 rounded-2xl font-bold shadow-xl shadow-accent/20 gap-2 transition-transform hover:scale-105"
               >
-                <Plus className="h-6 w-6" />
-                Report Item
+                <Plus className="h-5 w-5" />
+                New Report
               </Button>
             </div>
 
             {currentView === 'listings' && (
               <Tabs defaultValue="active" className="w-full">
-                <TabsList className="bg-white border border-slate-200/60 p-2 h-16 w-full md:w-auto justify-start gap-2 rounded-[24px] shadow-sm">
-                  <TabsTrigger value="active" className="data-[state=active]:bg-primary data-[state=active]:text-white h-full px-10 rounded-[18px] font-black transition-all">
+                <TabsList className="bg-white border border-slate-200/60 p-1 h-14 w-full md:w-auto rounded-2xl shadow-sm">
+                  <TabsTrigger value="active" className="data-[state=active]:bg-primary data-[state=active]:text-white h-full px-8 rounded-xl font-bold">
                     Active ({activeItems.length})
                   </TabsTrigger>
-                  <TabsTrigger value="resolved" className="data-[state=active]:bg-primary data-[state=active]:text-white h-full px-10 rounded-[18px] font-black transition-all">
+                  <TabsTrigger value="resolved" className="data-[state=active]:bg-primary data-[state=active]:text-white h-full px-8 rounded-xl font-bold">
                     History ({resolvedItems.length})
                   </TabsTrigger>
                 </TabsList>
@@ -294,32 +281,33 @@ export default function Dashboard() {
                       {[1, 2, 3, 4].map(i => <ItemCard key={i} loading />)}
                     </div>
                   ) : activeItems.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {activeItems.map((item) => (
-                        <div key={item.id} className="space-y-4">
+                        <div key={item.id} className="space-y-3">
                           <ItemCard item={item} />
                           <Button 
                             variant="outline" 
-                            className="w-full h-14 rounded-[20px] gap-3 font-black text-accent border-accent/20 hover:bg-accent/5 hover:border-accent transition-all shadow-sm"
+                            className="w-full h-12 rounded-xl gap-2 font-bold text-emerald-600 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all"
                             onClick={() => handleResolve(item.id)}
+                            disabled={isResolvingId === item.id}
                           >
-                            <CheckCircle2 className="h-5 w-5" />
+                            {isResolvingId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                             Mark as Resolved
                           </Button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-40 bg-white rounded-[48px] border-2 border-dashed border-slate-200 flex flex-col items-center gap-8 shadow-inner">
-                      <div className="h-28 w-28 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200">
-                        <Package className="h-14 w-14" />
+                    <div className="text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-200 flex flex-col items-center gap-6">
+                      <div className="h-20 w-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200">
+                        <Package className="h-10 w-10" />
                       </div>
-                      <div className="space-y-2">
-                        <p className="text-3xl font-black text-slate-900 tracking-tight">Nothing active</p>
-                        <p className="text-slate-400 font-bold text-lg">You haven't posted any lost or found items yet.</p>
+                      <div className="space-y-1">
+                        <p className="text-xl font-bold text-slate-900">No active reports</p>
+                        <p className="text-slate-400 font-medium">You haven't posted any lost or found items yet.</p>
                       </div>
-                      <Button variant="outline" className="rounded-[20px] px-10 h-16 font-black border-slate-200 text-lg hover:bg-slate-50" onClick={() => router.push('/post-item')}>
-                        Report Your First Item
+                      <Button variant="outline" className="rounded-xl px-8 h-12 font-bold" onClick={() => router.push('/post-item')}>
+                        Start Reporting
                       </Button>
                     </div>
                   )}
@@ -327,14 +315,14 @@ export default function Dashboard() {
                 
                 <TabsContent value="resolved" className="pt-8 outline-none">
                   {resolvedItems.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       {resolvedItems.map((item) => (
                         <ItemCard key={item.id} item={item} />
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-40 bg-white rounded-[48px] border border-dashed border-slate-200 shadow-sm">
-                      <p className="text-slate-400 font-black text-2xl">No history found.</p>
+                    <div className="text-center py-32 bg-white rounded-[40px] border border-dashed border-slate-200">
+                      <p className="text-slate-400 font-bold">No resolved items in your history.</p>
                     </div>
                   )}
                 </TabsContent>
@@ -342,28 +330,28 @@ export default function Dashboard() {
             )}
 
             {currentView === 'saved' && (
-              <div className="pt-4">
+              <div className="pt-2">
                 {savedLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {[1, 2, 3, 4].map(i => <ItemCard key={i} loading />)}
                   </div>
                 ) : savedItemsData.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {savedItemsData.map((item) => (
                       <ItemCard key={item.id} item={item} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-40 bg-white rounded-[48px] border-2 border-dashed border-slate-200 flex flex-col items-center gap-8 shadow-inner">
-                    <div className="h-28 w-28 bg-red-50 rounded-[40px] flex items-center justify-center text-red-200">
-                      <Heart className="h-14 w-14" />
+                  <div className="text-center py-32 bg-white rounded-[40px] border-2 border-dashed border-slate-200 flex flex-col items-center gap-6">
+                    <div className="h-20 w-20 bg-red-50 rounded-[32px] flex items-center justify-center text-red-200">
+                      <Heart className="h-10 w-10" />
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-3xl font-black text-slate-900 tracking-tight">Nothing saved</p>
-                      <p className="text-slate-400 font-bold text-lg">Items you bookmark will appear here.</p>
+                    <div className="space-y-1">
+                      <p className="text-xl font-bold text-slate-900">Collection Empty</p>
+                      <p className="text-slate-400 font-medium">Items you bookmark will appear here for easy tracking.</p>
                     </div>
-                    <Button variant="outline" className="rounded-[20px] px-10 h-16 font-black border-slate-200 text-lg" onClick={() => router.push('/items')}>
-                      Go to Campus Feed
+                    <Button variant="outline" className="rounded-xl px-8 h-12 font-bold" onClick={() => router.push('/items')}>
+                      Explore Campus Feed
                     </Button>
                   </div>
                 )}
@@ -371,11 +359,11 @@ export default function Dashboard() {
             )}
 
             {currentView === 'notifications' && (
-              <div className="text-center py-40 bg-white rounded-[48px] border border-slate-100 shadow-sm flex flex-col items-center gap-6">
-                <div className="h-28 w-28 bg-blue-50 rounded-[40px] flex items-center justify-center text-blue-300">
-                  <Bell className="h-14 w-14" />
+              <div className="text-center py-32 bg-white rounded-[40px] border border-slate-100 flex flex-col items-center gap-4">
+                <div className="h-20 w-20 bg-blue-50 rounded-[32px] flex items-center justify-center text-blue-200">
+                  <Bell className="h-10 w-10" />
                 </div>
-                <p className="text-slate-400 font-black text-2xl">Your alerts center is empty.</p>
+                <p className="text-slate-400 font-bold text-lg">Your notifications center is currently empty.</p>
               </div>
             )}
           </div>
