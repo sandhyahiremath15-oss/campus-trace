@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, MapPin, Tag } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Tag, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MOCK_ITEMS } from '@/lib/mock-data';
 import { ItemCard } from '@/components/item-card';
 import {
   Select,
@@ -16,19 +15,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { CampusItem } from '@/lib/types';
 
 export default function BrowseItems() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const filteredItems = MOCK_ITEMS.filter(item => {
-    const matchesSearch = item.description.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         item.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const firestore = useFirestore();
+  
+  const itemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'items'), orderBy('datePosted', 'desc'));
+  }, [firestore]);
+
+  const { data: items, loading } = useCollection<CampusItem>(itemsQuery);
+
+  const filteredItems = useMemo(() => {
+    if (!items) return [];
+    return items.filter(item => {
+      const matchesSearch = item.description.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           item.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
+  }, [items, searchQuery, categoryFilter, statusFilter]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -42,13 +56,12 @@ export default function BrowseItems() {
           </div>
           
           <div className="w-full md:w-auto flex flex-wrap gap-3">
-            <Badge variant="outline" className="h-8 px-4 cursor-pointer hover:bg-muted" onClick={() => setStatusFilter('all')}>All</Badge>
+            <Badge variant={statusFilter === 'all' ? 'default' : 'outline'} className="h-8 px-4 cursor-pointer" onClick={() => setStatusFilter('all')}>All</Badge>
             <Badge variant={statusFilter === 'lost' ? 'default' : 'outline'} className="h-8 px-4 cursor-pointer" onClick={() => setStatusFilter('lost')}>Lost</Badge>
             <Badge variant={statusFilter === 'found' ? 'default' : 'outline'} className="h-8 px-4 cursor-pointer" onClick={() => setStatusFilter('found')}>Found</Badge>
           </div>
         </div>
 
-        {/* Filters & Search */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10 p-6 bg-white rounded-xl shadow-sm border">
           <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -88,7 +101,6 @@ export default function BrowseItems() {
           </Select>
         </div>
 
-        {/* Results */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -99,7 +111,12 @@ export default function BrowseItems() {
             </h2>
           </div>
 
-          {filteredItems.length > 0 ? (
+          {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+              <p>Loading campus listings...</p>
+            </div>
+          ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredItems.map((item) => (
                 <ItemCard key={item.id} item={item} />

@@ -8,6 +8,7 @@ export interface CampusItem extends AIItem {
   posterName: string;
   posterEmail: string;
   datePosted: string;
+  userId?: string;
 }
 
 export type Category = 'electronics' | 'apparel' | 'stationery' | 'keys' | 'wallets' | 'other';

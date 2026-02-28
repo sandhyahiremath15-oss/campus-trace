@@ -1,0 +1,71 @@
+
+{
+  "entities": {
+    "CampusItem": {
+      "title": "Campus Item",
+      "description": "A lost or found item reported on campus",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the item"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the item (electronics, apparel, etc.)"
+        },
+        "location": {
+          "type": "string",
+          "description": "Where the item was lost or found"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["lost", "found"],
+          "description": "Whether the item is lost or found"
+        },
+        "photoDataUri": {
+          "type": "string",
+          "description": "Base64 encoded image data"
+        },
+        "posterName": {
+          "type": "string",
+          "description": "Name of the person who reported it"
+        },
+        "posterEmail": {
+          "type": "string",
+          "description": "Email of the person who reported it"
+        },
+        "datePosted": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of when the report was created"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who created the report"
+        }
+      },
+      "required": [
+        "description",
+        "category",
+        "location",
+        "status",
+        "posterName",
+        "posterEmail",
+        "datePosted"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google.com",
+      "password"
+    ]
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "CampusItem",
+      "description": "Collection of all lost and found item reports"
+    }
+  }
+}

@@ -1,13 +1,14 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { aiMatchingSuggestions, MatchedItemSuggestionSchema } from '@/ai/flows/ai-matching-suggestions';
+import { useState, useEffect, useMemo } from 'react';
+import { aiMatchingSuggestions } from '@/ai/flows/ai-matching-suggestions';
 import { CampusItem } from '@/lib/types';
-import { MOCK_ITEMS } from '@/lib/mock-data';
 import { Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ItemCard } from './item-card';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, limit } from 'firebase/firestore';
 
 interface AIMatchesProps {
   currentItem: CampusItem;
@@ -15,18 +16,33 @@ interface AIMatchesProps {
 
 export function AIMatches({ currentItem }: AIMatchesProps) {
   const [matches, setMatches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const firestore = useFirestore();
+
+  // Fetch items of the opposite status to compare against
+  const itemsQuery = useMemo(() => {
+    if (!firestore) return null;
+    const oppositeStatus = currentItem.status === 'lost' ? 'found' : 'lost';
+    return query(
+      collection(firestore, 'items'), 
+      where('status', '==', oppositeStatus),
+      limit(20)
+    );
+  }, [firestore, currentItem.status]);
+
+  const { data: itemsToCompare, loading: itemsLoading } = useCollection<CampusItem>(itemsQuery);
 
   useEffect(() => {
-    async function fetchMatches() {
+    async function fetchAiMatches() {
+      if (!itemsToCompare || itemsToCompare.length === 0) return;
+      
+      setAiLoading(true);
       try {
-        const itemsToCompare = MOCK_ITEMS.filter(item => item.id !== currentItem.id && item.status !== currentItem.status);
         const result = await aiMatchingSuggestions({
           itemToMatch: currentItem,
           itemsToCompareAgainst: itemsToCompare
         });
         
-        // Find the actual item objects for the IDs returned by AI
         const suggestedItems = result.matchedItems.map(suggestion => {
           const item = itemsToCompare.find(i => i.id === suggestion.id);
           return item ? { ...item, matchReason: suggestion.reason, score: suggestion.score } : null;
@@ -36,14 +52,16 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
       } catch (error) {
         console.error("Failed to fetch AI matches:", error);
       } finally {
-        setLoading(false);
+        setAiLoading(false);
       }
     }
 
-    fetchMatches();
-  }, [currentItem]);
+    if (!itemsLoading) {
+      fetchAiMatches();
+    }
+  }, [currentItem, itemsToCompare, itemsLoading]);
 
-  if (loading) {
+  if (itemsLoading || aiLoading) {
     return (
       <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
@@ -64,7 +82,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
         </div>
         <h2 className="text-2xl font-bold font-headline">AI-Powered Suggestions</h2>
       </div>
-      <p className="text-muted-foreground">Our AI engine identified these items as potential matches based on your description.</p>
+      <p className="text-muted-foreground">Our AI engine identified these items as potential matches based on descriptions and locations.</p>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {matches.map((item) => (
@@ -73,7 +91,9 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
             <Card className="border-accent/30 bg-accent/5">
               <CardContent className="p-3 text-sm flex gap-2">
                 <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-                <p><span className="font-semibold text-accent">Match Reason:</span> {item.matchReason}</p>
+                <div>
+                  <span className="font-semibold text-accent">Match Reason:</span> {item.matchReason}
+                </div>
               </CardContent>
             </Card>
           </div>

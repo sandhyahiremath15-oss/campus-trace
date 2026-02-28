@@ -5,17 +5,38 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { MOCK_ITEMS } from '@/lib/mock-data';
-import { MapPin, Calendar, Tag, User, Mail, ChevronLeft, Flag, Share2 } from 'lucide-react';
+import { MapPin, Calendar, User, Mail, ChevronLeft, Flag, Share2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AIMatches } from '@/components/ai-matches';
 import { cn } from '@/lib/utils';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { CampusItem } from '@/lib/types';
+import { useMemo } from 'react';
 
 export default function ItemDetail() {
   const { id } = useParams();
-  const item = MOCK_ITEMS.find(i => i.id === id);
+  const firestore = useFirestore();
+  
+  const itemDocRef = useMemo(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'items', id as string);
+  }, [firestore, id]);
+
+  const { data: item, loading } = useDoc<CampusItem>(itemDocRef);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   if (!item) {
     return (
@@ -23,9 +44,10 @@ export default function ItemDetail() {
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Item Not Found</h1>
+            <h1 className="text-4xl font-bold mb-4 text-primary font-headline">Item Not Found</h1>
+            <p className="text-muted-foreground mb-8">The report you're looking for may have been removed or resolved.</p>
             <Link href="/items">
-              <Button>Back to Browse</Button>
+              <Button size="lg">Back to Browse</Button>
             </Link>
           </div>
         </main>
@@ -46,11 +68,10 @@ export default function ItemDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left Side: Images */}
           <div className="space-y-4">
             <div className="relative aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden border shadow-sm group">
               <Image
-                src={item.photoDataUri || 'https://picsum.photos/seed/detail/800/600'}
+                src={item.photoDataUri || `https://picsum.photos/seed/${item.id}/800/600`}
                 alt={item.description}
                 fill
                 className="object-cover transition-transform group-hover:scale-105"
@@ -65,23 +86,15 @@ export default function ItemDetail() {
                 {isLost ? 'LOST' : 'FOUND'}
               </Badge>
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="relative aspect-square rounded-lg overflow-hidden border opacity-60 hover:opacity-100 cursor-pointer transition-opacity">
-                  <Image src={`https://picsum.photos/seed/detail-${i}/200/200`} alt="Thumbnail" fill className="object-cover" />
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Right Side: Details */}
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="px-3 capitalize">{item.category}</Badge>
                 <span className="text-sm text-muted-foreground flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  Posted on {item.datePosted}
+                  Posted on {new Date(item.datePosted).toLocaleDateString()}
                 </span>
               </div>
               <h1 className="text-3xl md:text-4xl font-black font-headline text-primary leading-tight">
@@ -135,7 +148,6 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        {/* AI Matches Section */}
         <AIMatches currentItem={item} />
       </main>
     </div>

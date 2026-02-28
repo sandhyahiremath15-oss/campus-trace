@@ -18,25 +18,61 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    status: 'lost',
+    description: '',
+    category: '',
+    location: '',
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!firestore) return;
+    
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      setStep(2);
-      toast({
-        title: "Success!",
-        description: "Your report has been published to the community.",
+
+    const itemData = {
+      ...formData,
+      posterName: user?.displayName || 'Campus User',
+      posterEmail: user?.email || 'user@university.edu',
+      datePosted: new Date().toISOString(),
+      userId: user?.uid || 'anonymous',
+      photoDataUri: '', // To be implemented with storage later
+    };
+
+    const itemsRef = collection(firestore, 'items');
+
+    addDoc(itemsRef, itemData)
+      .then(() => {
+        setLoading(false);
+        setStep(2);
+        toast({
+          title: "Success!",
+          description: "Your report has been published to the community.",
+        });
+      })
+      .catch(async (serverError) => {
+        setLoading(false);
+        const permissionError = new FirestorePermissionError({
+          path: itemsRef.path,
+          operation: 'create',
+          requestResourceData: itemData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-    }, 1500);
   };
 
   if (step === 2) {
@@ -80,7 +116,11 @@ export default function PostItem() {
           <div className="space-y-6">
             <div className="space-y-3">
               <Label className="text-lg font-bold">What happened?</Label>
-              <RadioGroup defaultValue="lost" className="flex gap-6">
+              <RadioGroup 
+                defaultValue="lost" 
+                className="flex gap-6"
+                onValueChange={(val) => setFormData({...formData, status: val})}
+              >
                 <div className="flex items-center space-x-2 p-4 border rounded-xl flex-1 cursor-pointer hover:bg-muted/50 transition-colors">
                   <RadioGroupItem value="lost" id="lost" />
                   <Label htmlFor="lost" className="font-semibold cursor-pointer">I lost something</Label>
@@ -99,6 +139,8 @@ export default function PostItem() {
                 placeholder="E.g., Blue iPhone 13 with a cracked screen and a NASA sticker on the back..." 
                 className="min-h-[120px] text-base"
                 required
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
@@ -109,7 +151,10 @@ export default function PostItem() {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label htmlFor="category" className="text-lg font-bold">Category</Label>
-                <Select required>
+                <Select 
+                  required 
+                  onValueChange={(val) => setFormData({...formData, category: val})}
+                >
                   <SelectTrigger id="category">
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4 text-muted-foreground" />
@@ -131,7 +176,14 @@ export default function PostItem() {
                 <Label htmlFor="location" className="text-lg font-bold">Location</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="location" placeholder="E.g., Main Library, 3rd Floor" className="pl-10" required />
+                  <Input 
+                    id="location" 
+                    placeholder="E.g., Main Library, 3rd Floor" 
+                    className="pl-10" 
+                    required 
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  />
                 </div>
               </div>
             </div>
