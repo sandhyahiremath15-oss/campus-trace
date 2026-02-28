@@ -20,7 +20,7 @@ export function ItemCard({ item }: ItemCardProps) {
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
             src={item.imageUrl || 'https://picsum.photos/seed/item/600/400'}
-            alt={item.title}
+            alt={item.title || 'Campus Item'}
             fill
             className="object-cover transition-transform group-hover:scale-105"
             data-ai-hint="lost found item"
@@ -43,7 +43,7 @@ export function ItemCard({ item }: ItemCardProps) {
             {item.category}
           </div>
           <h3 className="font-semibold text-lg line-clamp-1 leading-tight group-hover:text-primary transition-colors">
-            {item.title}
+            {item.title || 'Untitled Report'}
           </h3>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0 space-y-2">

@@ -40,7 +40,12 @@ export default function ItemDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border shadow-sm">
-            <Image src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/600`} alt={item.title} fill className="object-cover" />
+            <Image 
+              src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/600`} 
+              alt={item.title || 'Campus Item'} 
+              fill 
+              className="object-cover" 
+            />
             <Badge className={cn("absolute left-4 top-4 px-4 py-1.5 shadow-lg", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
               {item.type.toUpperCase()}
             </Badge>
@@ -52,7 +57,7 @@ export default function ItemDetail() {
                 <Badge variant="secondary">{item.category}</Badge>
                 <Badge variant="outline" className="capitalize">{item.status}</Badge>
               </div>
-              <h1 className="text-4xl font-black font-headline text-primary">{item.title}</h1>
+              <h1 className="text-4xl font-black font-headline text-primary">{item.title || 'Untitled Report'}</h1>
               <p className="text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" />{item.location}</p>
             </div>
 
