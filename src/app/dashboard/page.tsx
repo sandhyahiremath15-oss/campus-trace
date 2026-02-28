@@ -1,11 +1,12 @@
+
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Package, Heart, Bell, Plus, CheckCircle2, UserCircle, LogOut, LayoutGrid, Loader2 } from 'lucide-react';
+import { Settings, Package, Heart, Bell, Plus, CheckCircle2, UserCircle, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useUser, useAuth } from '@/firebase';
@@ -30,7 +31,8 @@ export default function Dashboard() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [isResolvingId, setIsResolvingId] = useState<string | null>(null);
 
-  // Debugging Frontend: Stable Query Memoization
+  const isAnonymous = user?.isAnonymous;
+
   const userItemsQuery = useMemo(() => {
     if (!firestore || !user?.uid) return null;
     return getUserItemsQuery(firestore, user.uid);
@@ -44,7 +46,6 @@ export default function Dashboard() {
   const { data: myItemsRaw, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
   const { data: savedMapping } = useCollection<SavedItem>(savedItemsMappingQuery);
 
-  // Sorting helper
   const sortedItems = useMemo(() => {
     if (!myItemsRaw) return [];
     return [...myItemsRaw].sort((a, b) => {
@@ -58,7 +59,6 @@ export default function Dashboard() {
     });
   }, [myItemsRaw]);
 
-  // Fetch actual items from saved mapping
   useEffect(() => {
     const fetchSavedItems = async () => {
       if (!firestore || !savedMapping || savedMapping.length === 0) {
@@ -73,7 +73,6 @@ export default function Dashboard() {
           return;
         }
 
-        // Firestore 'in' queries are limited to 10-30 items
         const results: CampusItem[] = [];
         const chunks = [];
         for (let i = 0; i < itemIds.length; i += 10) {
@@ -130,12 +129,13 @@ export default function Dashboard() {
 
   const userInitial = useMemo(() => {
     if (!user) return '?';
+    if (user.isAnonymous) return 'G';
     return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
   }, [user]);
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
         <Navbar />
         <main className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -154,7 +154,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="max-w-md w-full glass-card p-12 rounded-[48px] text-center space-y-6">
@@ -181,7 +181,6 @@ export default function Dashboard() {
       
       <main className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Sidebar Navigation */}
           <aside className="lg:col-span-3 space-y-6">
             <div className="bg-white p-8 rounded-[40px] border border-slate-200/60 shadow-xl shadow-slate-100/50 text-center">
               <div className="relative inline-block mb-6">
@@ -193,14 +192,28 @@ export default function Dashboard() {
                 </Avatar>
                 <div className="absolute bottom-1 right-1 h-6 w-6 bg-emerald-500 border-4 border-white rounded-full" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-1 tracking-tight truncate px-2">{user.displayName || 'Campus User'}</h2>
-              <p className="text-xs text-slate-400 font-medium mb-8 tracking-tight truncate px-2">{user.email}</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-1 tracking-tight truncate px-2">
+                {user.isAnonymous ? 'Guest User' : (user.displayName || 'Campus User')}
+              </h2>
+              <p className="text-xs text-slate-400 font-medium mb-8 tracking-tight truncate px-2">
+                {user.isAnonymous ? 'Public Session' : user.email}
+              </p>
               
               <div className="space-y-3">
-                <Button variant="outline" className="w-full gap-2 rounded-2xl h-12 font-bold border-slate-200 hover:bg-slate-50">
-                  <Settings className="h-4 w-4" />
-                  Account Settings
-                </Button>
+                {!user.isAnonymous && (
+                  <Button variant="outline" className="w-full gap-2 rounded-2xl h-12 font-bold border-slate-200 hover:bg-slate-50">
+                    <Settings className="h-4 w-4" />
+                    Account Settings
+                  </Button>
+                )}
+                {user.isAnonymous && (
+                  <Button 
+                    className="w-full gap-2 rounded-2xl h-12 font-bold bg-primary text-white"
+                    onClick={() => router.push('/auth/register')}
+                  >
+                    Link Account
+                  </Button>
+                )}
                 <Button variant="ghost" className="w-full gap-2 rounded-2xl h-12 font-bold text-slate-400 hover:text-red-500 hover:bg-red-50" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4" />
                   Sign Out
@@ -244,7 +257,6 @@ export default function Dashboard() {
             </nav>
           </aside>
 
-          {/* Main Content Area */}
           <div className="lg:col-span-9 space-y-10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="space-y-1">
