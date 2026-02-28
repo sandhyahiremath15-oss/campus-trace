@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,6 +13,7 @@ import { useFirestore, useUser, useCollection } from '@/firebase';
 import { toggleSaveItem } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where } from 'firebase/firestore';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ItemCardProps {
   item?: CampusItem;
@@ -26,8 +26,12 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Optimized saved query - only query if we have a user and item
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const savedQuery = useMemo(() => {
     if (!firestore || !user || !item) return null;
     return query(
@@ -55,10 +59,9 @@ export function ItemCard({ item, loading }: ItemCardProps) {
       });
       return;
     }
-    if (!item || isSaving) return;
+    if (!item || isSaving || !firestore) return;
 
     setIsSaving(true);
-    // Optimistic UI
     const previousState = isSaved;
     setIsSaved(!previousState);
 
@@ -100,9 +103,13 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   }
 
   const isLost = item.type === 'lost';
-  const formattedDate = item.createdAt?.toDate 
-    ? item.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-    : item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent';
+  
+  // Prevent hydration mismatch by only formatting date on the client
+  const formattedDate = !mounted ? '...' : (
+    item.createdAt?.toDate 
+      ? item.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+      : item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent'
+  );
 
   return (
     <Card className="overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-3 group border-none bg-white shadow-xl shadow-slate-200/40 ring-1 ring-slate-200/60 rounded-[32px]">
@@ -113,7 +120,6 @@ export function ItemCard({ item, loading }: ItemCardProps) {
             alt={item.title || 'Campus Item'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
-            data-ai-hint="lost found item"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
           

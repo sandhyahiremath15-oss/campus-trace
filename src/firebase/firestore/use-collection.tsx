@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Query, onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
-import { FirestorePermissionError } from '../errors';
+import { FirestorePermissionError, SecurityRuleContext } from '../errors';
 
 export function useCollection<T = DocumentData>(query: Query<T> | null) {
   const [data, setData] = useState<T[] | null>(null);
@@ -14,6 +13,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
   useEffect(() => {
     if (!query) {
       setLoading(false);
+      setData(null);
       return;
     }
 
@@ -27,12 +27,16 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         }));
         setData(items);
         setLoading(false);
+        setError(null);
       },
       async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: (query as any)._query?.path?.relativeName || 'unknown',
+        // Safe context construction avoiding brittle internal SDK property access
+        const context: SecurityRuleContext = {
+          path: 'collection_query',
           operation: 'list',
-        });
+        };
+        
+        const permissionError = new FirestorePermissionError(context);
         errorEmitter.emit('permission-error', permissionError);
         setError(permissionError);
         setLoading(false);

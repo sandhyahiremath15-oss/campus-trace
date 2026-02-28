@@ -1,13 +1,12 @@
-
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Search, PlusCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { MapPin, Search, PlusCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
 import { useFirestore, useCollection } from '@/firebase';
-import { query, collection, where, orderBy, limit } from 'firebase/firestore';
+import { query, collection, limit } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
 import { useMemo } from 'react';
 
@@ -16,20 +15,26 @@ export default function Home() {
 
   const latestQuery = useMemo(() => {
     if (!firestore) return null;
-    // We remove the 'status' where clause here to avoid index requirement for initial development
+    // Simplified query to avoid index requirements on first deploy
     return query(
       collection(firestore, 'items'),
-      orderBy('createdAt', 'desc'),
-      limit(3)
+      limit(10)
     );
   }, [firestore]);
 
   const { data: rawItems, loading } = useCollection<CampusItem>(latestQuery);
 
-  // Filter for open items in memory
+  // Sort and filter in memory to guarantee stability and performance
   const latestItems = useMemo(() => {
     if (!rawItems) return [];
-    return rawItems.filter(item => item.status === 'open');
+    return rawItems
+      .filter(item => item.status === 'open')
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 3);
   }, [rawItems]);
 
   return (
@@ -68,7 +73,6 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Decorative Background Elements */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-30 pointer-events-none">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full" />
@@ -109,7 +113,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Stats / Features */}
+        {/* Features */}
         <section className="py-24 bg-slate-900 text-white rounded-[60px] mx-4 mb-24 overflow-hidden relative">
           <div className="container mx-auto px-4 relative z-10">
             <div className="grid md:grid-cols-3 gap-16 text-center">

@@ -5,30 +5,33 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
 export function initializeFirebase() {
-  // Check if any Firebase config is missing to avoid runtime errors in production
-  const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+  try {
+    const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
-  if (!isConfigValid) {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Firebase configuration is incomplete. Check your .env file.');
+    if (!isConfigValid) {
+      console.warn('Firebase configuration is incomplete. Authentication and database features will be disabled.');
+      return { app: null, db: null, auth: null };
     }
+
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+
+    db = getFirestore(app);
+    auth = getAuth(app);
+
+    return { app, db, auth };
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+    return { app: null, db: null, auth: null };
   }
-
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-
-  db = getFirestore(app);
-  auth = getAuth(app);
-
-  return { app, db, auth };
 }
 
 export * from './provider';
