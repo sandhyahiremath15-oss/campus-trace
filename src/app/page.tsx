@@ -1,117 +1,156 @@
 
+'use client';
+
 import Link from 'next/link';
-import { MapPin, Search, PlusCircle, ArrowRight } from 'lucide-react';
+import { MapPin, Search, PlusCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/navbar';
-import { MOCK_ITEMS } from '@/lib/mock-data';
 import { ItemCard } from '@/components/item-card';
+import { useFirestore, useCollection } from '@/firebase';
+import { query, collection, where, orderBy, limit } from 'firebase/firestore';
+import { CampusItem } from '@/lib/types';
+import { useMemo } from 'react';
 
 export default function Home() {
-  const latestItems = MOCK_ITEMS.slice(0, 3);
+  const firestore = useFirestore();
+
+  const latestQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'items'),
+      where('status', '==', 'open'),
+      orderBy('createdAt', 'desc'),
+      limit(3)
+    );
+  }, [firestore]);
+
+  const { data: latestItems, loading } = useCollection<CampusItem>(latestQuery);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-body">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-body">
       <Navbar />
       
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative py-20 overflow-hidden">
+        <section className="relative py-24 md:py-32 overflow-hidden bg-white">
           <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-left-8 duration-700">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                <MapPin className="h-4 w-4" />
-                <span>Trusted Campus Lost & Found</span>
+            <div className="max-w-4xl mx-auto text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 text-primary text-sm font-black uppercase tracking-widest border border-primary/10">
+                <Sparkles className="h-4 w-4" />
+                <span>AI-Powered Lost & Found</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-black font-headline text-primary leading-tight">
-                Trace it back to its <span className="text-accent underline decoration-4 underline-offset-8">owner.</span>
+              <h1 className="text-6xl md:text-8xl font-black font-headline text-slate-900 leading-[0.9] tracking-tighter">
+                Trace it back to <br />
+                <span className="text-primary italic">its owner.</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-xl">
-                The community-driven platform for finding lost items and returning found belongings on campus. Powered by AI to match reports instantly.
+              <p className="text-xl md:text-2xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
+                The community-driven platform for reuniting campus belongings. 
+                Smart matching, instant alerts, and zero friction.
               </p>
-              <div className="flex flex-wrap gap-4 pt-4">
-                <Link href="/post-item">
-                  <Button size="lg" className="h-14 px-8 text-lg bg-accent text-accent-foreground hover:bg-accent/90">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+                <Link href="/post-item" className="w-full sm:w-auto">
+                  <Button size="lg" className="h-16 px-12 text-xl font-black rounded-[24px] w-full bg-primary text-white shadow-2xl shadow-primary/30 hover:scale-105 transition-transform">
                     Report an Item
                   </Button>
                 </Link>
-                <Link href="/items">
-                  <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-primary text-primary hover:bg-primary/5">
-                    Browse All
+                <Link href="/items" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="h-16 px-12 text-xl font-black rounded-[24px] w-full border-slate-200 hover:bg-slate-50 transition-all">
+                    Browse Feed
                   </Button>
                 </Link>
               </div>
             </div>
           </div>
           
-          {/* Decorative Elements */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-2/3 bg-primary/5 blur-3xl rounded-full -z-10" />
-          <div className="absolute left-1/4 bottom-0 w-64 h-64 bg-accent/5 blur-3xl rounded-full -z-10" />
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-30 pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full" />
+          </div>
         </section>
 
         {/* Latest Listings */}
-        <section className="py-16 bg-muted/20">
+        <section className="py-24">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <h2 className="text-3xl font-bold font-headline">Latest Listings</h2>
-                <p className="text-muted-foreground mt-1">Recently reported lost and found items in your area.</p>
+            <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black font-headline text-slate-900 tracking-tighter">Recently Reported</h2>
+                <p className="text-slate-500 font-bold text-lg">Fresh entries from the campus community.</p>
               </div>
-              <Link href="/items" className="text-primary font-semibold flex items-center gap-1 group">
-                View all items
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <Link href="/items" className="text-primary font-black flex items-center gap-2 group text-lg">
+                View All Items
+                <div className="h-10 w-10 rounded-full border border-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                  <ArrowRight className="h-5 w-5" />
+                </div>
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {latestItems.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3].map(i => <div key={i} className="h-[400px] rounded-[32px] bg-white animate-pulse border border-slate-100" />)}
+              </div>
+            ) : latestItems && latestItems.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-in fade-in duration-700">
+                {latestItems.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-[40px] border border-dashed border-slate-200">
+                <p className="text-slate-400 font-bold text-lg">No active reports found. Be the first!</p>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Features */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-12 text-center">
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary">
-                  <Search className="h-8 w-8" />
+        {/* Stats / Features */}
+        <section className="py-24 bg-slate-900 text-white rounded-[60px] mx-4 mb-24 overflow-hidden relative">
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="grid md:grid-cols-3 gap-16 text-center">
+              <div className="space-y-6">
+                <div className="w-20 h-20 bg-primary/20 rounded-[32px] flex items-center justify-center mx-auto text-primary">
+                  <Search className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">Smart Search</h3>
-                <p className="text-muted-foreground">Filter by category, location, and date to find exactly what you're looking for.</p>
+                <h3 className="text-2xl font-black font-headline tracking-tight">Smart Search</h3>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed">Filter by category, location, and date to find exactly what you're looking for.</p>
               </div>
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto text-accent">
-                  <PlusCircle className="h-8 w-8" />
+              <div className="space-y-6">
+                <div className="w-20 h-20 bg-accent/20 rounded-[32px] flex items-center justify-center mx-auto text-accent">
+                  <PlusCircle className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">Instant Reporting</h3>
-                <p className="text-muted-foreground">Quick and easy form for reporting items you've found or lost on campus.</p>
+                <h3 className="text-2xl font-black font-headline tracking-tight">Instant Reporting</h3>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed">Quick and easy form for reporting items you've found or lost on campus.</p>
               </div>
-              <div className="space-y-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary">
-                  <MapPin className="h-8 w-8" />
+              <div className="space-y-6">
+                <div className="w-20 h-20 bg-primary/20 rounded-[32px] flex items-center justify-center mx-auto text-primary">
+                  <MapPin className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">AI Matching</h3>
-                <p className="text-muted-foreground">Our AI cross-references listings to suggest potential matches between lost and found reports.</p>
+                <h3 className="text-2xl font-black font-headline tracking-tight">AI Matching</h3>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed">Our AI cross-references listings to suggest potential matches instantly.</p>
               </div>
             </div>
           </div>
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(36,102,179,0.1),transparent_50%)]" />
         </section>
       </main>
 
-      <footer className="border-t py-12 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MapPin className="h-4 w-4" />
+      <footer className="py-20 bg-white border-t border-slate-100">
+        <div className="container mx-auto px-4 text-center space-y-8">
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+              <MapPin className="h-6 w-6" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-primary font-headline">
+            <span className="text-3xl font-black tracking-tighter text-primary font-headline">
               CampusTrace
             </span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            © 2024 CampusTrace. A community project for safer and more connected campuses.
+          <div className="flex justify-center gap-8 text-slate-400 font-bold text-sm uppercase tracking-widest">
+            <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Support</Link>
+          </div>
+          <p className="text-slate-400 font-medium">
+            © 2024 CampusTrace. Built for a connected campus community.
           </p>
         </div>
       </footer>
