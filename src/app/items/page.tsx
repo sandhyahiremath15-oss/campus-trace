@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import { getItemsQuery } from '@/lib/db';
 import { CampusItem } from '@/lib/types';
 
 export default function BrowseItems() {
@@ -29,8 +28,7 @@ export default function BrowseItems() {
   
   const itemsQuery = useMemo(() => {
     if (!firestore) return null;
-    // By default only show open items
-    return query(collection(firestore, 'items'), orderBy('createdAt', 'desc'));
+    return getItemsQuery(firestore);
   }, [firestore]);
 
   const { data: items, loading } = useCollection<CampusItem>(itemsQuery);
@@ -52,8 +50,8 @@ export default function BrowseItems() {
     });
 
     return [...result].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
       return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
   }, [items, searchQuery, categoryFilter, typeFilter, sortBy]);

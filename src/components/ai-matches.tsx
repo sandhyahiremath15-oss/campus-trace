@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -8,7 +7,7 @@ import { Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ItemCard } from './item-card';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { getPotentialMatchesQuery } from '@/lib/db';
 
 interface AIMatchesProps {
   currentItem: CampusItem;
@@ -21,13 +20,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
 
   const itemsQuery = useMemo(() => {
     if (!firestore) return null;
-    const oppositeType = currentItem.type === 'lost' ? 'found' : 'lost';
-    return query(
-      collection(firestore, 'items'), 
-      where('type', '==', oppositeType),
-      where('status', '==', 'open'),
-      limit(10)
-    );
+    return getPotentialMatchesQuery(firestore, currentItem.type);
   }, [firestore, currentItem.type]);
 
   const { data: itemsToCompare, loading: itemsLoading } = useCollection<CampusItem>(itemsQuery);

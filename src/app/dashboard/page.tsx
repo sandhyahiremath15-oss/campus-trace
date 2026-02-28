@@ -9,7 +9,7 @@ import { Settings, Package, Heart, Bell, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { getUserItemsQuery } from '@/lib/db';
 import { CampusItem } from '@/lib/types';
 
 export default function Dashboard() {
@@ -19,11 +19,7 @@ export default function Dashboard() {
 
   const userItemsQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'items'),
-      where('userId', '==', user.uid),
-      orderBy('datePosted', 'desc')
-    );
+    return getUserItemsQuery(firestore, user.uid);
   }, [firestore, user]);
 
   const { data: myItems, loading: itemsLoading } = useCollection<CampusItem>(userItemsQuery);
@@ -58,7 +54,8 @@ export default function Dashboard() {
     );
   }
 
-  const activeItems = myItems || [];
+  const activeItems = (myItems || []).filter(item => item.status === 'open');
+  const resolvedItems = (myItems || []).filter(item => item.status !== 'open');
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -130,7 +127,7 @@ export default function Dashboard() {
                   Active Listings ({activeItems.length})
                 </TabsTrigger>
                 <TabsTrigger value="resolved" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-full px-6">
-                  Resolved
+                  Resolved ({resolvedItems.length})
                 </TabsTrigger>
               </TabsList>
               
@@ -142,14 +139,7 @@ export default function Dashboard() {
                 ) : activeItems.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {activeItems.map((item) => (
-                      <div key={item.id} className="relative group">
-                        <ItemCard item={item} />
-                        <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button size="sm" variant="secondary" className="shadow-lg h-8">
-                            Edit
-                          </Button>
-                        </div>
-                      </div>
+                      <ItemCard key={item.id} item={item} />
                     ))}
                   </div>
                 ) : (
@@ -164,9 +154,17 @@ export default function Dashboard() {
               </TabsContent>
               
               <TabsContent value="resolved" className="pt-6">
-                <div className="text-center py-20 bg-white rounded-2xl border border-dashed">
-                  <p className="text-muted-foreground">No resolved items yet. Hopefully soon!</p>
-                </div>
+                {resolvedItems.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {resolvedItems.map((item) => (
+                      <ItemCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-white rounded-2xl border border-dashed">
+                    <p className="text-muted-foreground">No resolved items yet. Hopefully soon!</p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
