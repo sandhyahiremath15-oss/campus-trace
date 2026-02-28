@@ -12,15 +12,15 @@ interface ItemCardProps {
 }
 
 export function ItemCard({ item }: ItemCardProps) {
-  const isLost = item.status === 'lost';
+  const isLost = item.type === 'lost';
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md group">
       <Link href={`/items/${item.id}`}>
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={item.photoDataUri || 'https://picsum.photos/seed/item/600/400'}
-            alt={item.description}
+            src={item.imageUrl || 'https://picsum.photos/seed/item/600/400'}
+            alt={item.title}
             fill
             className="object-cover transition-transform group-hover:scale-105"
             data-ai-hint="lost found item"
@@ -33,6 +33,9 @@ export function ItemCard({ item }: ItemCardProps) {
           >
             {isLost ? 'LOST' : 'FOUND'}
           </Badge>
+          <Badge variant="secondary" className="absolute left-2 top-2 bg-white/80 backdrop-blur-sm text-xs border-none">
+            {item.status.toUpperCase()}
+          </Badge>
         </div>
         <CardHeader className="p-4 pb-2">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1 capitalize">
@@ -40,7 +43,7 @@ export function ItemCard({ item }: ItemCardProps) {
             {item.category}
           </div>
           <h3 className="font-semibold text-lg line-clamp-1 leading-tight group-hover:text-primary transition-colors">
-            {item.description}
+            {item.title}
           </h3>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0 space-y-2">
@@ -50,7 +53,7 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>{item.datePosted}</span>
+            <span>{new Date(item.createdAt).toLocaleDateString()}</span>
           </div>
         </CardContent>
         <CardFooter className="px-4 py-3 border-t bg-muted/30 flex justify-between items-center">
@@ -58,7 +61,7 @@ export function ItemCard({ item }: ItemCardProps) {
             By {item.posterName}
           </span>
           <span className="text-primary font-semibold text-xs uppercase tracking-wider">
-            View Details
+            Details
           </span>
         </CardFooter>
       </Link>

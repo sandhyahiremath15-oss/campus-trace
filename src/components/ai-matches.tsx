@@ -19,16 +19,16 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const firestore = useFirestore();
 
-  // Fetch items of the opposite status to compare against
   const itemsQuery = useMemo(() => {
     if (!firestore) return null;
-    const oppositeStatus = currentItem.status === 'lost' ? 'found' : 'lost';
+    const oppositeType = currentItem.type === 'lost' ? 'found' : 'lost';
     return query(
       collection(firestore, 'items'), 
-      where('status', '==', oppositeStatus),
-      limit(20)
+      where('type', '==', oppositeType),
+      where('status', '==', 'open'),
+      limit(10)
     );
-  }, [firestore, currentItem.status]);
+  }, [firestore, currentItem.type]);
 
   const { data: itemsToCompare, loading: itemsLoading } = useCollection<CampusItem>(itemsQuery);
 
@@ -56,7 +56,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
       }
     }
 
-    if (!itemsLoading) {
+    if (!itemsLoading && itemsToCompare) {
       fetchAiMatches();
     }
   }, [currentItem, itemsToCompare, itemsLoading]);
@@ -70,20 +70,14 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
     );
   }
 
-  if (matches.length === 0) {
-    return null;
-  }
+  if (matches.length === 0) return null;
 
   return (
     <section className="space-y-6 mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-2">
-        <div className="p-2 rounded-full bg-accent/20 text-accent">
-          <Sparkles className="h-5 w-5" />
-        </div>
+        <div className="p-2 rounded-full bg-accent/20 text-accent"><Sparkles className="h-5 w-5" /></div>
         <h2 className="text-2xl font-bold font-headline">AI-Powered Suggestions</h2>
       </div>
-      <p className="text-muted-foreground">Our AI engine identified these items as potential matches based on descriptions and locations.</p>
-      
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {matches.map((item) => (
           <div key={item.id} className="space-y-3">
@@ -91,9 +85,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
             <Card className="border-accent/30 bg-accent/5">
               <CardContent className="p-3 text-sm flex gap-2">
                 <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-accent">Match Reason:</span> {item.matchReason}
-                </div>
+                <div><span className="font-semibold text-accent">Match Reason:</span> {item.matchReason}</div>
               </CardContent>
             </Card>
           </div>

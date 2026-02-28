@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -15,21 +16,21 @@ import {
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { useFirestore, useCollection } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
 
 export default function BrowseItems() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
   const firestore = useFirestore();
   
-  // Memoize query to prevent infinite loops in useCollection
   const itemsQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'items'), orderBy('datePosted', 'desc'));
+    // By default only show open items
+    return query(collection(firestore, 'items'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: items, loading } = useCollection<CampusItem>(itemsQuery);
@@ -40,23 +41,22 @@ export default function BrowseItems() {
     let result = items.filter(item => {
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch = 
+        item.title.toLowerCase().includes(searchLower) ||
         item.description.toLowerCase().includes(searchLower) || 
-        item.location.toLowerCase().includes(searchLower) ||
-        item.category.toLowerCase().includes(searchLower);
+        item.location.toLowerCase().includes(searchLower);
         
       const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      const matchesType = typeFilter === 'all' || item.type === typeFilter;
       
-      return matchesSearch && matchesCategory && matchesStatus;
+      return matchesSearch && matchesCategory && matchesType;
     });
 
-    // Apply client-side sorting based on selection
     return [...result].sort((a, b) => {
-      const dateA = new Date(a.datePosted).getTime();
-      const dateB = new Date(b.datePosted).getTime();
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
       return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
-  }, [items, searchQuery, categoryFilter, statusFilter, sortBy]);
+  }, [items, searchQuery, categoryFilter, typeFilter, sortBy]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
@@ -71,26 +71,26 @@ export default function BrowseItems() {
           
           <div className="w-full md:w-auto flex flex-wrap gap-2 bg-white p-1 rounded-xl border shadow-sm">
             <Button 
-              variant={statusFilter === 'all' ? 'default' : 'ghost'} 
+              variant={typeFilter === 'all' ? 'default' : 'ghost'} 
               size="sm"
               className="h-9 px-4 rounded-lg"
-              onClick={() => setStatusFilter('all')}
+              onClick={() => setTypeFilter('all')}
             >
               All
             </Button>
             <Button 
-              variant={statusFilter === 'lost' ? 'default' : 'ghost'} 
+              variant={typeFilter === 'lost' ? 'default' : 'ghost'} 
               size="sm"
               className="h-9 px-4 rounded-lg"
-              onClick={() => setStatusFilter('lost')}
+              onClick={() => setTypeFilter('lost')}
             >
               Lost
             </Button>
             <Button 
-              variant={statusFilter === 'found' ? 'default' : 'ghost'} 
+              variant={typeFilter === 'found' ? 'default' : 'ghost'} 
               size="sm"
               className="h-9 px-4 rounded-lg"
-              onClick={() => setStatusFilter('found')}
+              onClick={() => setTypeFilter('found')}
             >
               Found
             </Button>
@@ -101,8 +101,8 @@ export default function BrowseItems() {
           <div className="md:col-span-6 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search description, location, or keywords..." 
-              className="pl-10 h-11 border-muted focus-visible:ring-primary"
+              placeholder="Search title, description, or location..." 
+              className="pl-10 h-11 border-muted"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -145,14 +145,12 @@ export default function BrowseItems() {
         </div>
 
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              Results
-              <Badge variant="secondary" className="rounded-full px-2.5">
-                {filteredItems.length}
-              </Badge>
-            </h2>
-          </div>
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            Results
+            <Badge variant="secondary" className="rounded-full px-2.5">
+              {filteredItems.length}
+            </Badge>
+          </h2>
 
           {loading ? (
             <div className="py-32 flex flex-col items-center justify-center text-muted-foreground bg-white/50 rounded-2xl border border-dashed">
@@ -167,22 +165,11 @@ export default function BrowseItems() {
             </div>
           ) : (
             <div className="py-32 text-center space-y-6 bg-white rounded-2xl border border-dashed shadow-sm">
-              <div className="bg-muted/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-muted-foreground">
-                <Search className="h-10 w-10 opacity-40" />
-              </div>
+              <Search className="h-12 w-12 text-muted-foreground opacity-20 mx-auto" />
               <div className="space-y-2">
                 <h3 className="text-2xl font-black font-headline text-primary">No results found</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">
-                  We couldn't find anything matching your current filters. Try broader terms or check back later!
-                </p>
+                <p className="text-muted-foreground max-w-sm mx-auto">Try broadening your search criteria.</p>
               </div>
-              <Button 
-                variant="outline" 
-                className="border-primary text-primary hover:bg-primary/5"
-                onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setStatusFilter('all'); }}
-              >
-                Clear All Filters
-              </Button>
             </div>
           )}
         </div>

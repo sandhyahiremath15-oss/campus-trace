@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { MapPin, Calendar, User, Mail, ChevronLeft, Flag, Share2, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, User, Mail, ChevronLeft, Flag, Share2, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -27,127 +27,52 @@ export default function ItemDetail() {
 
   const { data: item, loading } = useDoc<CampusItem>(itemDocRef);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </main>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
+  if (!item) return <div className="p-20 text-center"><h1>Item Not Found</h1><Link href="/items"><Button>Back to Browse</Button></Link></div>;
 
-  if (!item) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4 text-primary font-headline">Item Not Found</h1>
-            <p className="text-muted-foreground mb-8">The report you're looking for may have been removed or resolved.</p>
-            <Link href="/items">
-              <Button size="lg">Back to Browse</Button>
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  const isLost = item.status === 'lost';
+  const isLost = item.type === 'lost';
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-body">
       <Navbar />
-      
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <Link href="/items" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors group">
-          <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Listings
-        </Link>
+        <Link href="/items" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground mb-6"><ChevronLeft className="h-4 w-4" />Back</Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="space-y-4">
-            <div className="relative aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden border shadow-sm group">
-              <Image
-                src={item.photoDataUri || `https://picsum.photos/seed/${item.id}/800/600`}
-                alt={item.description}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-                priority
-              />
-              <Badge
-                className={cn(
-                  "absolute left-4 top-4 px-4 py-1.5 text-sm shadow-lg",
-                  isLost ? "bg-red-500" : "bg-accent text-accent-foreground"
-                )}
-              >
-                {isLost ? 'LOST' : 'FOUND'}
-              </Badge>
-            </div>
+          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border shadow-sm">
+            <Image src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/600`} alt={item.title} fill className="object-cover" />
+            <Badge className={cn("absolute left-4 top-4 px-4 py-1.5 shadow-lg", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
+              {item.type.toUpperCase()}
+            </Badge>
           </div>
 
-          <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-700">
-            <div className="space-y-4">
+          <div className="space-y-6">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="px-3 capitalize">{item.category}</Badge>
-                <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Posted on {new Date(item.datePosted).toLocaleDateString()}
-                </span>
+                <Badge variant="secondary">{item.category}</Badge>
+                <Badge variant="outline" className="capitalize">{item.status}</Badge>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black font-headline text-primary leading-tight">
-                {item.description}
-              </h1>
-              <div className="flex items-center gap-2 text-lg text-muted-foreground">
-                <MapPin className="h-5 w-5 text-primary" />
-                {item.location}
-              </div>
+              <h1 className="text-4xl font-black font-headline text-primary">{item.title}</h1>
+              <p className="text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" />{item.location}</p>
             </div>
 
-            <Separator />
-
-            <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-6">
-              <h3 className="font-bold text-xl font-headline">Contact Information</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <User className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Reported by</p>
-                    <p className="font-semibold text-lg">{item.posterName}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent">
-                    <Mail className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email address</p>
-                    <p className="font-semibold text-lg">{item.posterEmail}</p>
-                  </div>
-                </div>
-              </div>
-              <Button className="w-full h-14 text-lg bg-accent text-accent-foreground hover:bg-accent/90" asChild>
-                <a href={`mailto:${item.posterEmail}`}>Send Message</a>
-              </Button>
+            <div className="bg-white p-6 rounded-2xl border shadow-sm">
+              <h3 className="font-bold mb-2 flex items-center gap-2"><Info className="h-4 w-4" /> Description</h3>
+              <p className="text-muted-foreground whitespace-pre-wrap">{item.description}</p>
             </div>
 
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex-1 gap-2">
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <Button variant="outline" className="flex-1 gap-2 text-red-500 hover:text-red-600 hover:bg-red-50">
-                <Flag className="h-4 w-4" />
-                Report Post
+            <div className="bg-white p-6 rounded-2xl border shadow-sm space-y-4">
+              <h3 className="font-bold">Contact Reporter</h3>
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><User /></div>
+                <div><p className="text-xs text-muted-foreground">Name</p><p className="font-medium">{item.posterName}</p></div>
+              </div>
+              <Button className="w-full bg-accent text-accent-foreground" asChild>
+                <a href={`mailto:${item.posterEmail}`}>Send Email</a>
               </Button>
             </div>
           </div>
         </div>
-
         <AIMatches currentItem={item} />
       </main>
     </div>
