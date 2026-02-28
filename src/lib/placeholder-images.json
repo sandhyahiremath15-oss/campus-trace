@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "item-electronics",
+      "description": "Lost electronic device",
+      "imageUrl": "https://images.unsplash.com/photo-1502096472573-eaac515392c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxlbGVjdHJvbmljcyUyMHNtYXJ0cGhvbmV8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "electronics smartphone"
+    },
+    {
+      "id": "item-apparel",
+      "description": "Lost jacket or clothing",
+      "imageUrl": "https://images.unsplash.com/photo-1727516299214-c4d54704b045?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjbG90aGluZyUyMGphY2tldHxlbnwwfHx8fDE3NzIyNDc2OTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clothing jacket"
+    },
+    {
+      "id": "item-stationery",
+      "description": "Lost notebook or pen",
+      "imageUrl": "https://images.unsplash.com/photo-1624627283905-5a6747e72d3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzdGF0aW9uZXJ5JTIwbm90ZWJvb2t8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "stationery notebook"
+    },
+    {
+      "id": "hero-image",
+      "description": "Campus community helping each other",
+      "imageUrl": "https://images.unsplash.com/photo-1741636174266-a090f9427ec0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYW1wdXMlMjBjb21tdW5pdHl8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "campus community"
+    }
+  ]
 }
