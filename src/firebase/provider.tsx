@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
@@ -22,7 +22,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
 
 /**
  * Robust Firebase Provider that handles hydration safely.
- * Ensures Firebase is only initialized on the client after initial mount.
+ * Ensures Firebase is only initialized on the client after initial mount to prevent hydration mismatches.
  */
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<FirebaseContextType>({
@@ -33,6 +33,7 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   });
 
   useEffect(() => {
+    // Perform initialization once on client mount
     const initialized = initializeFirebase();
     setState({
       ...initialized,

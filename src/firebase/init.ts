@@ -1,14 +1,13 @@
-
 'use client';
 
-import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp, getApp, deleteApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
  * Initializes Firebase in a browser-safe way.
- * Returns null values if the environment is not a browser or config is invalid.
+ * Prevents double initialization and handles missing configuration gracefully.
  */
 export function initializeFirebase() {
   if (typeof window === 'undefined') {
@@ -19,11 +18,14 @@ export function initializeFirebase() {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
+      console.warn('Firebase configuration is incomplete. Check your environment variables.');
       return { app: null, db: null, auth: null };
     }
 
     let app: FirebaseApp;
-    if (getApps().length === 0) {
+    const existingApps = getApps();
+    
+    if (existingApps.length === 0) {
       app = initializeApp(firebaseConfig);
     } else {
       app = getApp();

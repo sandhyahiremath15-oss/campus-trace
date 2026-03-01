@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
@@ -27,6 +27,7 @@ import Link from 'next/link';
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
+  const { isInitialized } = useFirebase();
   const firestore = useFirestore();
   const { user, loading: authLoading } = useUser();
   
@@ -83,7 +84,7 @@ export default function PostItem() {
     let finalImageUrl = formData.imageUrl;
 
     try {
-      // Trigger Nano-Banana visual generation if no photo provided
+      // Trigger AI visual generation if no photo provided
       if (!finalImageUrl) {
         setIsGeneratingImage(true);
         try {
@@ -127,14 +128,15 @@ export default function PostItem() {
       toast({ 
         variant: "destructive", 
         title: "Submission Error", 
-        description: "Could not save your report. Please try again." 
+        description: "Could not save your report. Please ensure your database rules allow this operation." 
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!mounted) {
+  // Prevent ANY rendering of complex components until we are hydrated and Firebase is ready
+  if (!mounted || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
