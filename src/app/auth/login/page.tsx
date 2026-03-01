@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -42,7 +41,14 @@ export default function Login() {
   }, [user, authLoading, router, mounted]);
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Auth Unavailable",
+        description: "Check your Firebase environment variables.",
+      });
+      return;
+    }
     setGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -71,10 +77,17 @@ export default function Login() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      console.error("Auth Error:", error.code, error.message);
+      
+      let description = error.message || "Could not sign in with Google.";
+      if (error.code === 'auth/unauthorized-domain') {
+        description = "This domain is not authorized. Please add it in the Firebase Console (Authentication > Settings > Authorized Domains).";
+      }
+
       toast({
         variant: "destructive",
         title: "Sign In Failed",
-        description: error.message || "Could not sign in with Google.",
+        description,
       });
     } finally {
       setGoogleLoading(false);

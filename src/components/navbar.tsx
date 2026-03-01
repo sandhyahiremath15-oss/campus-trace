@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -65,8 +64,8 @@ export function Navbar() {
     return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
   }, [user]);
 
-  // Prevent hydration mismatch by rendering a consistent shell initially
-  const showUserArea = mounted && !authLoading && user;
+  // Prevent hydration mismatch: only render user-specific data after mounting
+  const isReady = mounted && !authLoading;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -100,7 +99,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
-          {showUserArea ? (
+          {isReady && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -113,8 +112,8 @@ export function Navbar() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName || 'Campus User'}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    <p className="text-sm font-medium leading-none truncate">{user.displayName || 'Campus User'}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -137,20 +136,22 @@ export function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
+          ) : isReady ? (
             <>
               <Link href="/auth/login" className="hidden sm:block">
-                <Button variant="ghost" size="sm" className="flex gap-2">
+                <Button variant="ghost" size="sm" className="flex gap-2 font-bold">
                   <User className="h-4 w-4" />
                   Sign In
                 </Button>
               </Link>
               <Link href="/post-item">
-                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 font-bold px-6">
                   Report Item
                 </Button>
               </Link>
             </>
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
           )}
 
           {/* Mobile Menu Toggle */}
@@ -182,7 +183,7 @@ export function Navbar() {
                       {item.name}
                     </Link>
                   ))}
-                  {(!mounted || !user) && (
+                  {isReady && !user && (
                     <Link
                       href="/auth/login"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -192,7 +193,7 @@ export function Navbar() {
                       Sign In
                     </Link>
                   )}
-                  {mounted && user && (
+                  {isReady && user && (
                     <button
                       onClick={() => {
                         handleSignOut();

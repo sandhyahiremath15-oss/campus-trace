@@ -99,6 +99,7 @@ export default function PostItem() {
           }
         } catch (err) {
           console.error("AI Visualization failed:", err);
+          // If AI fails, we still continue with a placeholder or no image
         } finally {
           setIsGeneratingImage(false);
         }
@@ -123,34 +124,23 @@ export default function PostItem() {
         title: "Success",
         description: "Your report has been published.",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Firestore submission error:", err);
       toast({ 
         variant: "destructive", 
         title: "Submission Error", 
-        description: "Could not save your report. Please ensure your database rules allow this operation." 
+        description: err.message || "Could not save your report." 
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Prevent ANY rendering of complex components until we are hydrated and Firebase is ready
-  if (!mounted || !isInitialized) {
+  // Prevent ANY rendering until we are hydrated and Firebase is ready
+  if (!mounted || !isInitialized || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
-      </div>
-    );
-  }
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin h-8 w-8 text-primary" />
-        </main>
       </div>
     );
   }
@@ -162,7 +152,7 @@ export default function PostItem() {
         <main className="flex-1 flex items-center justify-center p-8">
           <div className="text-center space-y-6 bg-white p-12 rounded-[40px] shadow-xl max-w-sm border border-slate-100">
             <h2 className="text-3xl font-bold">Sign In Required</h2>
-            <p className="text-slate-500">You must be logged in to contribute to the campus feed.</p>
+            <p className="text-slate-500 font-medium">You must be logged in to contribute to the campus feed.</p>
             <Button className="w-full h-14 rounded-2xl font-bold" onClick={() => router.push('/auth/login')}>Log In</Button>
           </div>
         </main>

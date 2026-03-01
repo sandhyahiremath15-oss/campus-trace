@@ -1,8 +1,8 @@
 'use client';
 
-import { initializeApp, getApps, FirebaseApp, getApp, deleteApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
@@ -15,10 +15,11 @@ export function initializeFirebase() {
   }
 
   try {
+    // Check if we have at least the minimum required config
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
-      console.warn('Firebase configuration is incomplete. Check your environment variables.');
+      console.warn('Firebase configuration is incomplete. Authentication and database features may be disabled.');
       return { app: null, db: null, auth: null };
     }
 
@@ -26,8 +27,10 @@ export function initializeFirebase() {
     const existingApps = getApps();
     
     if (existingApps.length === 0) {
+      // Standard initialization
       app = initializeApp(firebaseConfig);
     } else {
+      // Use existing app to prevent double initialization errors
       app = getApp();
     }
 
