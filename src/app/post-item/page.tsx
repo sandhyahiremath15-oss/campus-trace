@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, Sparkles, AlertCircle, ChevronLeft } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function PostItem() {
   const router = useRouter();
@@ -50,8 +51,8 @@ export default function PostItem() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast({ variant: "destructive", title: "File too large", description: "Max size is 10MB." });
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "File too large", description: "Max size is 5MB." });
         return;
       }
       const reader = new FileReader();
@@ -70,27 +71,30 @@ export default function PostItem() {
       });
       return;
     }
+
+    if (!formData.category) {
+      toast({ variant: "destructive", title: "Category Required", description: "Please select a category for your item." });
+      return;
+    }
     
     setIsSubmitting(true);
     let finalImageUrl = formData.imageUrl;
 
-    // Auto-generate image if none provided
+    // Auto-generate image if none provided by user
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
         const result = await generateItemImage({
           title: formData.title,
           description: formData.description,
+          category: formData.category,
         });
         if (result && result.imageUrl) {
           finalImageUrl = result.imageUrl;
         }
       } catch (err) {
-        console.error("AI Image Generation failed:", err);
-        toast({
-          title: "Image Generation Note",
-          description: "We couldn't generate a custom photo, but your report will still be published with a category placeholder.",
-        });
+        console.error("Nano-Banana Generation failed:", err);
+        // We continue anyway, the ItemCard will use a category fallback if imageUrl is empty
       } finally {
         setIsGeneratingImage(false);
       }
@@ -113,9 +117,10 @@ export default function PostItem() {
     try {
       await addDoc(collection(firestore, 'items'), itemData);
       setStep(2);
+      toast({ title: "Report Published", description: "Your item is now live in the community feed." });
     } catch (err) {
       console.error(err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to publish report. Please check your connection." });
+      toast({ variant: "destructive", title: "Error", description: "Failed to publish report. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -171,9 +176,14 @@ export default function PostItem() {
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">
       <Navbar />
       <main className="container mx-auto px-4 py-16 max-w-3xl">
+        <Link href="/items" className="inline-flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-bold mb-8">
+          <ChevronLeft className="h-5 w-5" />
+          Back to Feed
+        </Link>
+
         <div className="text-center space-y-2 mb-12">
           <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Report an Item</h1>
-          <p className="text-slate-500 text-lg font-medium">Help the community identify your item.</p>
+          <p className="text-slate-500 text-lg font-medium">Help the community identify your item with accurate details.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] border border-slate-200/60 shadow-2xl shadow-slate-200/50 space-y-10">
@@ -235,7 +245,7 @@ export default function PostItem() {
             <Label htmlFor="description" className="font-bold text-slate-700">Detailed Description</Label>
             <Textarea 
               id="description" 
-              placeholder="Provide colors, brands, or unique marks..." 
+              placeholder="Provide colors, brands, or unique marks (e.g., 'Black round frame spectacles with a small scratch on left lens')..." 
               required 
               value={formData.description} 
               onChange={(e) => setFormData({...formData, description: e.target.value})} 
@@ -246,7 +256,7 @@ export default function PostItem() {
           <div className="space-y-3">
             <Label className="font-bold text-slate-700">Location</Label>
             <Input 
-              placeholder="E.g., Library 3rd floor" 
+              placeholder="E.g., Library 3rd floor quiet zone" 
               required 
               value={formData.location} 
               onChange={(e) => setFormData({...formData, location: e.target.value})} 
@@ -260,7 +270,7 @@ export default function PostItem() {
               {!formData.imageUrl && (
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full">
                   <Sparkles className="h-3 w-3" />
-                  Smart Gen Enabled
+                  Nano-Banana Gen Enabled
                 </div>
               )}
             </div>
@@ -279,7 +289,7 @@ export default function PostItem() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-base font-bold text-slate-600">Upload a Photo</p>
-                    <p className="text-sm text-slate-400 font-medium">Or let Smart Gen build a realistic photo for you.</p>
+                    <p className="text-sm text-slate-400 font-medium">Or let Nano-Banana generate a realistic photo based on your description.</p>
                   </div>
                 </>
               )}
@@ -291,7 +301,7 @@ export default function PostItem() {
             {isSubmitting ? (
               <span className="flex items-center gap-3">
                 <Loader2 className="h-6 w-6 animate-spin" /> 
-                {isGeneratingImage ? "Smart Gen Creating Photo..." : "Publishing Report..."}
+                {isGeneratingImage ? "Nano-Banana Visualizing..." : "Publishing Report..."}
               </span>
             ) : 'Publish Report'}
           </Button>
