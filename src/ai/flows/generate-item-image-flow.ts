@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview A campus item visualization AI agent using Gemini 2.5 Flash Image.
+ * @fileOverview A campus item visualization AI agent using Gemini 2.5 Flash Image (Nano-Banana).
  * 
  * - generateItemImage - A function that handles the AI image generation process.
  * - GenerateItemImageInput - The input type for the function.
@@ -8,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 
 const GenerateItemImageInputSchema = z.object({
   title: z.string().describe('The name of the item to visualize.'),
@@ -27,52 +28,52 @@ export type GenerateItemImageOutput = z.infer<typeof GenerateItemImageOutputSche
  * Uses Nano-Banana (Gemini 2.5 Flash Image) for high-fidelity matching.
  */
 export async function generateItemImage(input: GenerateItemImageInput): Promise<GenerateItemImageOutput> {
-  return generateItemImageFlow(input);
-}
+  // Use a dedicated flow to wrap the Nano-Banana call
+  const generateFlow = ai.defineFlow(
+    {
+      name: 'generateItemImageFlowInternal',
+      inputSchema: GenerateItemImageInputSchema,
+      outputSchema: GenerateItemImageOutputSchema,
+    },
+    async (flowInput) => {
+      const prompt = `Task: Generate a realistic, high-quality photograph of a campus item.
+      
+      Item Details:
+      - Title: ${flowInput.title}
+      - Description: ${flowInput.description}
+      - Category: ${flowInput.category}
+      
+      Requirements:
+      1. The image MUST strictly represent the item described above. If "Spectacles" are mentioned, show glasses. If "Blue water bottle" is mentioned, show that exact item.
+      2. The style must be a realistic photograph, like one taken with a modern smartphone.
+      3. Place the item in a natural campus environment (e.g., on a library table, a bench, or a classroom floor).
+      4. Use natural lighting. Ensure the item is the central focus.
+      5. DO NOT include any text, hands, faces, or identifiable people in the image.
+      6. The output must be purely the generated image of the item.`;
 
-const generateItemImageFlow = ai.defineFlow(
-  {
-    name: 'generateItemImageFlow',
-    inputSchema: GenerateItemImageInputSchema,
-    outputSchema: GenerateItemImageOutputSchema,
-  },
-  async (input) => {
-    // The prompt is engineered to ensure Nano-Banana "reaches" for the exact user details
-    const prompt = `Task: Generate a realistic photograph of a lost or found item.
-    
-    Item Title: ${input.title}
-    Description: ${input.description}
-    Category: ${input.category}
-    
-    Instructions:
-    - Create a realistic, high-quality photograph of the item described above.
-    - Focus strictly on the physical details provided (color, material, shape).
-    - If the item is "Spectacles", show them clearly with the specific frame details mentioned.
-    - Place the item on a neutral campus background (like a library table, grass, or concrete).
-    - Use natural lighting and a high-end smartphone photography style.
-    - DO NOT include any human hands, faces, or text in the image.
-    - The image must look like a real photo taken by a student.`;
+      const { media } = await ai.generate({
+        model: 'googleai/gemini-2.5-flash-image',
+        prompt,
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+          safetySettings: [
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+          ],
+        },
+      });
 
-    const { media } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-image',
-      prompt,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        safetySettings: [
-          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-        ],
-      },
-    });
+      if (!media || !media.url) {
+        throw new Error('Nano-Banana was unable to generate a visual for this specific item.');
+      }
 
-    if (!media || !media.url) {
-      throw new Error('Nano-Banana was unable to generate a visual for this item.');
+      return {
+        imageUrl: media.url,
+      };
     }
+  );
 
-    return {
-      imageUrl: media.url,
-    };
-  }
-);
+  return generateFlow(input);
+}

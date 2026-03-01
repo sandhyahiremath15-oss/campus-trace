@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -35,6 +36,7 @@ export default function PostItem() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
+  
   const [formData, setFormData] = useState({
     type: 'lost' as 'lost' | 'found',
     title: '',
@@ -63,17 +65,18 @@ export default function PostItem() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!firestore || !user) {
       toast({
         variant: "destructive",
-        title: "Sign In Required",
-        description: "Please log in to publish a report.",
+        title: "Action Required",
+        description: "Please ensure you are signed in to report items.",
       });
       return;
     }
 
     if (!formData.category) {
-      toast({ variant: "destructive", title: "Category Required", description: "Please select an item category." });
+      toast({ variant: "destructive", title: "Missing Category", description: "Please select an item category first." });
       return;
     }
     
@@ -93,14 +96,13 @@ export default function PostItem() {
         if (result && result.imageUrl) {
           finalImageUrl = result.imageUrl;
           toast({
-            title: "Smart Visual Ready",
-            description: "Nano-Banana has generated a realistic visual for your report.",
+            title: "Smart Visual Generated",
+            description: "Nano-Banana has created a realistic image based on your description.",
           });
         }
       } catch (err) {
-        console.error("AI Generation failed:", err);
-        // Fallback to empty if generation fails
-        finalImageUrl = '';
+        console.error("Nano-Banana failed:", err);
+        // We proceed even if AI fails, using fallback category images in display
       } finally {
         setIsGeneratingImage(false);
       }
@@ -122,17 +124,18 @@ export default function PostItem() {
       });
       setStep(2);
     } catch (err) {
-      console.error(err);
-      toast({ variant: "destructive", title: "Error", description: "Failed to publish report." });
+      console.error("Firestore error:", err);
+      toast({ variant: "destructive", title: "Submit Failed", description: "We couldn't save your report. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Hydration guard to prevent Application Error
   if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin h-8 w-8 text-primary/40" />
+        <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
       </div>
     );
   }

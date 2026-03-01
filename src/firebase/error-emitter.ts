@@ -1,26 +1,40 @@
+
 'use client';
 
 /**
- * @fileOverview A simple, browser-compatible event emitter to avoid Node.js module dependencies.
+ * @fileOverview A robust, browser-safe event emitter to avoid Node.js dependencies in the client.
  */
 
 type Listener = (data: any) => void;
 
-const listeners: Record<string, Listener[]> = {};
+class SimpleEventEmitter {
+  private listeners: Record<string, Listener[]> = {};
 
-export const errorEmitter = {
   on(event: string, listener: Listener) {
-    if (!listeners[event]) {
-      listeners[event] = [];
+    if (typeof window === 'undefined') return;
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
     }
-    listeners[event].push(listener);
-  },
-  off(event: string, listener: Listener) {
-    if (!listeners[event]) return;
-    listeners[event] = listeners[event].filter(l => l !== listener);
-  },
-  emit(event: string, data: any) {
-    if (!listeners[event]) return;
-    listeners[event].forEach(l => l(data));
+    this.listeners[event].push(listener);
   }
-};
+
+  off(event: string, listener: Listener) {
+    if (typeof window === 'undefined') return;
+    if (!this.listeners[event]) return;
+    this.listeners[event] = this.listeners[event].filter(l => l !== listener);
+  }
+
+  emit(event: string, data: any) {
+    if (typeof window === 'undefined') return;
+    if (!this.listeners[event]) return;
+    this.listeners[event].forEach(l => {
+      try {
+        l(data);
+      } catch (e) {
+        console.error('Error in event listener:', e);
+      }
+    });
+  }
+}
+
+export const errorEmitter = new SimpleEventEmitter();
