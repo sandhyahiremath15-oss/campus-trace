@@ -80,23 +80,29 @@ export default function PostItem() {
     setIsSubmitting(true);
     let finalImageUrl = formData.imageUrl;
 
-    // AI Generation if no user photo
+    // AI Generation if no user photo provided
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
+        console.log("Starting Nano-Banana visualization...");
         const result = await generateItemImage({
           title: formData.title,
           description: formData.description,
           category: formData.category,
         });
+        
         if (result && result.imageUrl) {
           finalImageUrl = result.imageUrl;
+          toast({
+            title: "Smart Visual Ready",
+            description: "Nano-Banana has generated an accurate image for your report.",
+          });
         }
       } catch (err) {
         console.error("AI Generation failed:", err);
         toast({
           title: "Generation Notice",
-          description: "AI visualization skipped. Using category placeholder.",
+          description: "AI visualization skipped due to high demand. Using category placeholder.",
         });
       } finally {
         setIsGeneratingImage(false);
@@ -140,6 +146,7 @@ export default function PostItem() {
       <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
         <div className="text-center space-y-6 bg-white p-12 rounded-[40px] shadow-xl max-w-sm">
           <h2 className="text-3xl font-bold">Sign In Required</h2>
+          <p className="text-slate-500">Log in to contribute to the campus lost & found community.</p>
           <Button className="w-full h-14 rounded-2xl font-bold" onClick={() => router.push('/auth/login')}>Log In</Button>
         </div>
       </div>
@@ -151,11 +158,12 @@ export default function PostItem() {
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-8">
-            <div className="w-20 h-20 bg-emerald-500 text-white rounded-3xl flex items-center justify-center mx-auto">
+          <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 bg-emerald-500 text-white rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/30">
               <CheckCircle2 className="h-10 w-10" />
             </div>
-            <h1 className="text-4xl font-bold">Report Published!</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Report Published!</h1>
+            <p className="text-slate-500">The community can now view and help match your item.</p>
             <div className="flex flex-col gap-3 pt-4">
               <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold">View Feed</Button>
               <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold">My Dashboard</Button>
@@ -170,38 +178,43 @@ export default function PostItem() {
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">
       <Navbar />
       <main className="container mx-auto px-4 py-16 max-w-2xl">
-        <Link href="/items" className="inline-flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-bold mb-8">
-          <ChevronLeft className="h-5 w-5" />
-          Back
+        <Link href="/items" className="inline-flex items-center gap-2 text-slate-400 hover:text-primary transition-colors font-bold mb-8 group">
+          <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+          Back to Browse
         </Link>
 
-        <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] shadow-2xl space-y-8">
+        <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] shadow-2xl space-y-8 border border-slate-100">
           <div className="space-y-4">
-            <Label className="text-lg font-bold">Report Type</Label>
+            <h2 className="text-3xl font-bold text-slate-900">New Report</h2>
+            <p className="text-slate-500 font-medium">Provide details to help us find the correct owner.</p>
+          </div>
+
+          <div className="space-y-4">
+            <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Report Type</Label>
             <RadioGroup defaultValue="lost" className="grid grid-cols-2 gap-4" onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}>
-              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer", formData.type === 'lost' ? "border-primary bg-primary/5" : "border-slate-100")}>
+              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'lost' ? "border-primary bg-primary/5" : "border-slate-100 hover:bg-slate-50")}>
                 <RadioGroupItem value="lost" id="lost" />
-                <Label htmlFor="lost" className="font-bold">Lost</Label>
+                <Label htmlFor="lost" className="font-bold cursor-pointer">Lost Item</Label>
               </div>
-              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer", formData.type === 'found' ? "border-emerald-500 bg-emerald-50" : "border-slate-100")}>
+              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'found' ? "border-emerald-500 bg-emerald-50" : "border-slate-100 hover:bg-slate-50")}>
                 <RadioGroupItem value="found" id="found" />
-                <Label htmlFor="found" className="font-bold">Found</Label>
+                <Label htmlFor="found" className="font-bold cursor-pointer">Found Item</Label>
               </div>
             </RadioGroup>
           </div>
 
           <div className="space-y-4">
-            <Label htmlFor="title" className="font-bold">What is the item?</Label>
-            <Input id="title" placeholder="e.g. Blue Spectacles" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-xl" />
+            <Label htmlFor="title" className="text-sm font-black uppercase tracking-widest text-slate-400">Item Title</Label>
+            <Input id="title" placeholder="e.g. Blue Spectacles" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-xl text-base" />
           </div>
 
           <div className="space-y-4">
-            <Label className="font-bold">Category</Label>
+            <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Category</Label>
             <Select required onValueChange={(val) => setFormData({...formData, category: val})}>
               <SelectTrigger className="h-14 rounded-xl">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-2xl">
                 <SelectItem value="electronics">Electronics</SelectItem>
                 <SelectItem value="apparel">Apparel/Accessories</SelectItem>
                 <SelectItem value="keys">Keys</SelectItem>
@@ -213,38 +226,61 @@ export default function PostItem() {
           </div>
 
           <div className="space-y-4">
-            <Label htmlFor="description" className="font-bold">Description</Label>
-            <Textarea id="description" placeholder="Color, brand, markings..." required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="min-h-[120px] rounded-xl" />
+            <Label htmlFor="description" className="text-sm font-black uppercase tracking-widest text-slate-400">Detailed Description</Label>
+            <Textarea id="description" placeholder="Color, brand, unique markings..." required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="min-h-[120px] rounded-xl text-base py-4" />
           </div>
 
           <div className="space-y-4">
-            <Label className="font-bold">Location</Label>
-            <Input placeholder="e.g. Library 2nd Floor" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-xl" />
+            <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Location</Label>
+            <Input placeholder="e.g. Science Building, 2nd Floor" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-xl text-base" />
           </div>
 
           <div className="space-y-4">
-            <Label className="font-bold">Photo (Optional)</Label>
-            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all">
+            <div className="flex justify-between items-end">
+              <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Photo</Label>
+              <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-1">
+                <Sparkles className="h-3 w-3 mr-1" /> Auto-gen if empty
+              </Badge>
+            </div>
+            
+            <div 
+              onClick={() => fileInputRef.current?.click()} 
+              className={cn(
+                "border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all group",
+                formData.imageUrl && "p-2 border-primary/20 bg-primary/5"
+              )}
+            >
               {formData.imageUrl ? (
-                <div className="relative aspect-video rounded-xl overflow-hidden">
+                <div className="relative aspect-video rounded-[20px] overflow-hidden shadow-lg">
                   <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" unoptimized />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <p className="text-white font-bold text-sm">Change Photo</p>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Camera className="h-10 w-10 mx-auto text-slate-300" />
-                  <p className="font-bold text-slate-500">Upload Photo</p>
-                  <p className="text-xs text-slate-400">Or we'll generate one with AI</p>
+                <div className="space-y-3">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-400 group-hover:bg-white group-hover:text-primary transition-colors">
+                    <Camera className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-700">Upload your own photo</p>
+                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Real photos help the community find matches faster. We'll generate a realistic one if you don't have it.</p>
+                  </div>
                 </div>
               )}
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
           </div>
 
-          <Button type="submit" className="w-full h-16 text-xl font-bold rounded-2xl" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20 bg-primary text-white hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+            disabled={isSubmitting}
+          >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="animate-spin h-5 w-5" />
-                {isGeneratingImage ? "Nano-Banana Visualizing..." : "Publishing..."}
+                <Loader2 className="animate-spin h-6 w-6" />
+                {isGeneratingImage ? "Nano-Banana Visualizing..." : "Publishing Report..."}
               </span>
             ) : "Publish Report"}
           </Button>

@@ -6,7 +6,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const GenerateItemImageInputSchema = z.object({
   title: z.string().describe('The title of the item.'),
@@ -20,6 +19,10 @@ const GenerateItemImageOutputSchema = z.object({
 });
 export type GenerateItemImageOutput = z.infer<typeof GenerateItemImageOutputSchema>;
 
+/**
+ * Generates a realistic visual of a campus item based on its title and description.
+ * Uses Gemini 2.5 Flash Image (Nano-Banana).
+ */
 export async function generateItemImage(input: GenerateItemImageInput): Promise<GenerateItemImageOutput> {
   return generateItemImageFlow(input);
 }
@@ -31,40 +34,38 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (input) => {
-    // Find a reference image based on category for lighting/style context
-    const reference = PlaceHolderImages.find(p => p.id === input.category) || PlaceHolderImages.find(p => p.id === 'other')!;
+    // Construct a highly descriptive prompt for the model
+    const prompt = `Task: Generate a realistic, high-quality photograph of this item: ${input.title}.
+          
+    SPECIFIC DETAILS:
+    - Item Name: ${input.title}
+    - Visual Description: ${input.description}
+    - Category: ${input.category}
+    
+    SCENE REQUIREMENTS:
+    - The object should be resting naturally on a campus-like surface (e.g., a library table, grass, or a wooden bench).
+    - Use natural lighting and a professional photography style.
+    - NO people, NO hands, NO faces.
+    - NO text, NO watermarks, NO brand logos if possible.
+    - Focus strictly on the physical object described.`;
 
-    // Using Gemini 2.5 Flash Image (Nano-Banana) with direct media destructuring
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
-      prompt: [
-        {
-          text: `Task: Generate a realistic, high-quality photograph of this item: ${input.title}.
-          
-          SPECIFIC DETAILS:
-          - Item: ${input.title}
-          - Appearance: ${input.description}
-          
-          REQUIREMENTS:
-          - Create a crisp, clear image of the object.
-          - The object should be resting on a campus-like surface (e.g., a library table, grass, or a wooden bench).
-          - Match the lighting and professional photography style of the provided reference.
-          - NO people, NO text, NO watermarks.`,
-        },
-        {
-          media: {
-            url: reference.imageUrl,
-            contentType: 'image/jpeg',
-          },
-        },
-      ],
+      prompt,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
+        // Set permissive safety thresholds to avoid blocking generation of items like ID cards or wallets
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        ],
       },
     });
 
     if (!media || !media.url) {
-      throw new Error('Nano-Banana failed to generate a visual for this item.');
+      throw new Error('Nano-Banana failed to generate a visual for this item. Media was not returned.');
     }
 
     return {
