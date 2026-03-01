@@ -2,7 +2,6 @@
 /**
  * @fileOverview This file defines a Genkit flow for generating a realistic image 
  * of a lost or found item using Gemini 2.5 Flash Image (Nano-Banana).
- * It uses a reference category image to guide the AI's style and accuracy.
  */
 
 import {ai} from '@/ai/genkit';
@@ -32,26 +31,24 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (input) => {
-    // Find a reference image based on category to give Nano-Banana style context
+    // Find a reference image based on category for lighting/style context
     const reference = PlaceHolderImages.find(p => p.id === input.category) || PlaceHolderImages.find(p => p.id === 'other')!;
 
-    // Using Gemini 2.5 Flash Image (Nano-Banana)
-    // We provide both the text description AND a reference image to ensure high-quality output
-    const response = await ai.generate({
+    // Using Gemini 2.5 Flash Image (Nano-Banana) with direct media destructuring
+    const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
       prompt: [
         {
-          text: `Task: Generate a high-resolution, realistic smartphone photograph of a lost campus item.
+          text: `Task: Generate a realistic, high-quality photograph of this item: ${input.title}.
           
-          ITEM DETAILS:
-          - Title: ${input.title}
-          - Description: ${input.description}
-          - Category: ${input.category}
+          SPECIFIC DETAILS:
+          - Item: ${input.title}
+          - Appearance: ${input.description}
           
-          STYLE REQUIREMENTS:
-          - Match the visual style and high-quality lighting of the provided reference image.
-          - The item must be the sole focus, resting on a realistic campus surface (desk, bench, or grass).
-          - Ensure the physical details (colors, marks, materials) mentioned in the description are perfectly accurate.
+          REQUIREMENTS:
+          - Create a crisp, clear image of the object.
+          - The object should be resting on a campus-like surface (e.g., a library table, grass, or a wooden bench).
+          - Match the lighting and professional photography style of the provided reference.
           - NO people, NO text, NO watermarks.`,
         },
         {
@@ -66,15 +63,12 @@ const generateItemImageFlow = ai.defineFlow(
       },
     });
 
-    // Extract the media part from the response
-    const imagePart = response.message?.content.find(part => !!part.media);
-    
-    if (!imagePart || !imagePart.media || !imagePart.media.url) {
-      throw new Error('Nano-Banana failed to produce a valid image part.');
+    if (!media || !media.url) {
+      throw new Error('Nano-Banana failed to generate a visual for this item.');
     }
 
     return {
-      imageUrl: imagePart.media.url,
+      imageUrl: media.url,
     };
   }
 );
