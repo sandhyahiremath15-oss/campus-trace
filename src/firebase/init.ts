@@ -16,22 +16,19 @@ export function initializeFirebase() {
   }
 
   try {
-    // Sanitize and validate config values safely
-    const safeTrim = (val: any) => (typeof val === 'string' ? val.trim() : '');
-    
     const config = {
-      apiKey: safeTrim(firebaseConfig.apiKey),
-      authDomain: safeTrim(firebaseConfig.authDomain),
-      projectId: safeTrim(firebaseConfig.projectId),
-      storageBucket: safeTrim(firebaseConfig.storageBucket),
-      messagingSenderId: safeTrim(firebaseConfig.messagingSenderId),
-      appId: safeTrim(firebaseConfig.appId)
+      apiKey: firebaseConfig.apiKey?.trim(),
+      authDomain: firebaseConfig.authDomain?.trim(),
+      projectId: firebaseConfig.projectId?.trim(),
+      storageBucket: firebaseConfig.storageBucket?.trim(),
+      messagingSenderId: firebaseConfig.messagingSenderId?.trim(),
+      appId: firebaseConfig.appId?.trim()
     };
 
     const isConfigValid = !!config.apiKey && !!config.projectId;
 
     if (!isConfigValid) {
-      console.warn('CampusTrace: Firebase configuration is missing or incomplete. Some features will be disabled.');
+      console.warn('CampusTrace: Firebase configuration is missing or incomplete.');
       return { app: null, db: null, auth: null };
     }
 

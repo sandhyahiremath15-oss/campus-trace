@@ -25,10 +25,6 @@ import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-/**
- * @fileOverview Hardened PostItem page.
- * Resolved: "Badge is not defined" ReferenceError causing client-side crash.
- */
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
