@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
@@ -23,6 +22,7 @@ export function initializeFirebase() {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
+      console.warn('Firebase configuration is missing. Ensure NEXT_PUBLIC_FIREBASE_* variables are set.');
       return { app: null, db: null, auth: null };
     }
 

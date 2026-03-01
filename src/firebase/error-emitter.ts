@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -29,13 +28,18 @@ class SimpleEventEmitter {
   emit(event: string, data: any) {
     if (typeof window === 'undefined') return;
     if (!this.listeners[event]) return;
-    this.listeners[event].forEach(l => {
-      try {
-        l(data);
-      } catch (e) {
-        // Silent error in emitter
-      }
-    });
+    
+    // Defer emission to avoid triggering state updates during render
+    setTimeout(() => {
+      if (!this.listeners[event]) return;
+      this.listeners[event].forEach(l => {
+        try {
+          l(data);
+        } catch (e) {
+          console.error('Error in event listener:', e);
+        }
+      });
+    }, 0);
   }
 }
 

@@ -1,17 +1,22 @@
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, Search, PlusCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { MapPin, Search, PlusCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/navbar';
 import { ItemCard } from '@/components/item-card';
 import { useFirestore, useCollection } from '@/firebase';
 import { query, collection, limit } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
-import { useMemo } from 'react';
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const firestore = useFirestore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const latestQuery = useMemo(() => {
     if (!firestore) return null;
@@ -25,15 +30,23 @@ export default function Home() {
 
   const latestItems = useMemo(() => {
     if (!rawItems) return [];
-    return rawItems
+    
+    const safeGetTime = (val: any) => {
+      if (!val) return 0;
+      if (typeof val.toDate === 'function') return val.toDate().getTime();
+      const d = new Date(val).getTime();
+      return isNaN(d) ? 0 : d;
+    };
+
+    return [...rawItems]
       .filter(item => item.status === 'open')
-      .sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-        return dateB.getTime() - dateA.getTime();
-      })
+      .sort((a, b) => safeGetTime(b.createdAt) - safeGetTime(a.createdAt))
       .slice(0, 3);
   }, [rawItems]);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-50" />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">
