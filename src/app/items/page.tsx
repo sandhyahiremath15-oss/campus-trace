@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Tag, SlidersHorizontal, PackageSearch, Filter, ChevronDown } from 'lucide-react';
+import { Search, Tag, SlidersHorizontal, PackageSearch, MapPin, Loader2 } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,14 +20,18 @@ import { CampusItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function BrowseItems() {
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const firestore = useFirestore();
   
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const itemsQuery = useMemo(() => {
     if (!firestore) return null;
     return getItemsQuery(firestore);
@@ -63,6 +67,17 @@ export default function BrowseItems() {
       return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
     });
   }, [items, searchQuery, categoryFilter, typeFilter, sortBy]);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">

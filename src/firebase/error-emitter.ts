@@ -1,31 +1,26 @@
 'use client';
 
 /**
- * @fileOverview A simple, browser-compatible event emitter to avoid Node.js module dependencies
- * that can cause client-side crashes in production environments like Vercel.
+ * @fileOverview A simple, browser-compatible event emitter to avoid Node.js module dependencies.
  */
 
 type Listener = (data: any) => void;
 
-class SimpleEmitter {
-  private listeners: { [event: string]: Listener[] } = {};
+const listeners: Record<string, Listener[]> = {};
 
+export const errorEmitter = {
   on(event: string, listener: Listener) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
+    if (!listeners[event]) {
+      listeners[event] = [];
     }
-    this.listeners[event].push(listener);
-  }
-
+    listeners[event].push(listener);
+  },
   off(event: string, listener: Listener) {
-    if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(l => l !== listener);
-  }
-
+    if (!listeners[event]) return;
+    listeners[event] = listeners[event].filter(l => l !== listener);
+  },
   emit(event: string, data: any) {
-    if (!this.listeners[event]) return;
-    this.listeners[event].forEach(l => l(data));
+    if (!listeners[event]) return;
+    listeners[event].forEach(l => l(data));
   }
-}
-
-export const errorEmitter = new SimpleEmitter();
+};

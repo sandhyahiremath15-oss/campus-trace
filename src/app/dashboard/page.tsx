@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -21,6 +20,7 @@ import { cn } from '@/lib/utils';
 type DashboardView = 'listings' | 'saved' | 'notifications';
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useUser();
@@ -31,7 +31,9 @@ export default function Dashboard() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [isResolvingId, setIsResolvingId] = useState<string | null>(null);
 
-  const isAnonymous = user?.isAnonymous;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userItemsQuery = useMemo(() => {
     if (!firestore || !user?.uid) return null;
@@ -93,8 +95,8 @@ export default function Dashboard() {
       }
     };
 
-    fetchSavedItems();
-  }, [firestore, savedMapping]);
+    if (mounted) fetchSavedItems();
+  }, [firestore, savedMapping, mounted]);
 
   const handleResolve = async (id: string) => {
     if (!firestore) return;
@@ -133,7 +135,7 @@ export default function Dashboard() {
     return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
   }, [user]);
 
-  if (authLoading) {
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
         <Navbar />
