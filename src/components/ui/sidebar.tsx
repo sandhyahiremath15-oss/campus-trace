@@ -637,7 +637,7 @@ const SidebarMenuBadge = React.forwardRef<
 SidebarMenuBadge.displayName = "SidebarMenuBadge"
 
 /**
- * FIXED: Move width generation into useEffect to prevent hydration mismatches.
+ * FIXED: Use stable initial width to prevent hydration mismatches.
  */
 const SidebarMenuSkeleton = React.forwardRef<
   HTMLDivElement,
@@ -645,11 +645,10 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Use a stable initial state for the first render
   const [width, setWidth] = React.useState("70%")
 
   React.useEffect(() => {
-    // Only randomize after mount to match hydration
+    // Only update once mounted to prevent hydration errors
     setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
   }, [])
 

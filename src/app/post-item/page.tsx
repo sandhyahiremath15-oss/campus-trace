@@ -25,6 +25,10 @@ import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
+/**
+ * @fileOverview The Post Item page provides a multi-step form to report lost or found items.
+ * It uses a "mounted" hydration guard to prevent client-side exceptions during initial load.
+ */
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
@@ -130,6 +134,7 @@ export default function PostItem() {
     }
   };
 
+  // Crucial: Hydration guard to prevent client-side exceptions
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">

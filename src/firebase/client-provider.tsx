@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { initializeFirebase } from './index';
+import { initializeFirebase } from './init';
 import { FirebaseProvider } from './provider';
 
 /**
@@ -16,13 +16,15 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     db: null,
     auth: null,
   });
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Only initialize on the client after the first render
     const initialized = initializeFirebase();
     setFirebase(initialized);
+    setMounted(true);
   }, []);
 
+  // During SSR and first client-side render, we provide nulls to maintain consistency
   return (
     <FirebaseProvider app={firebase.app} firestore={firebase.db} auth={firebase.auth}>
       {children}

@@ -2,10 +2,6 @@
 'use server';
 /**
  * @fileOverview A campus item visualization AI agent using Gemini 2.5 Flash Image (Nano-Banana).
- * 
- * - generateItemImage - A function that handles the AI image generation process.
- * - GenerateItemImageInput - The input type for the function.
- * - GenerateItemImageOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -24,8 +20,7 @@ const GenerateItemImageOutputSchema = z.object({
 export type GenerateItemImageOutput = z.infer<typeof GenerateItemImageOutputSchema>;
 
 /**
- * Internal Genkit flow for generating images. 
- * Defined at the top level to prevent re-registration errors.
+ * Defined at the top level to avoid re-registration errors during Server Action lifecycle.
  */
 const generateItemImageFlow = ai.defineFlow(
   {
@@ -34,7 +29,7 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (flowInput) => {
-    const prompt = `Task: Generate a realistic, high-quality photograph of a campus item.
+    const promptText = `Task: Generate a realistic, high-quality photograph of a campus item.
     
     Item Details:
     - Title: ${flowInput.title}
@@ -42,16 +37,15 @@ const generateItemImageFlow = ai.defineFlow(
     - Category: ${flowInput.category}
     
     Requirements:
-    1. The image MUST strictly represent the item described above. If "Spectacles" are mentioned, show glasses. If "Blue water bottle" is mentioned, show that exact item.
-    2. The style must be a realistic photograph, like one taken with a modern smartphone.
-    3. Place the item in a natural campus environment (e.g., on a library table, a bench, or a classroom floor).
-    4. Use natural lighting. Ensure the item is the central focus.
-    5. DO NOT include any text, hands, faces, or identifiable people in the image.
-    6. The output must be purely the generated image of the item.`;
+    1. The image MUST strictly represent the item described.
+    2. The style must be a realistic photograph, taken with a smartphone.
+    3. Place the item in a natural campus environment focus.
+    4. NO text, hands, faces, or identifiable people.
+    5. Output must be purely the generated image.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
-      prompt,
+      prompt: promptText,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
         safetySettings: [
@@ -73,10 +67,6 @@ const generateItemImageFlow = ai.defineFlow(
   }
 );
 
-/**
- * Generates a realistic visual of a campus item based on its title and description.
- * Uses Nano-Banana (Gemini 2.5 Flash Image) for high-fidelity matching.
- */
 export async function generateItemImage(input: GenerateItemImageInput): Promise<GenerateItemImageOutput> {
   return generateItemImageFlow(input);
 }

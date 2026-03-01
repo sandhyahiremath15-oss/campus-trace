@@ -32,10 +32,6 @@ export function FirebaseProvider({
   );
 }
 
-/**
- * Safer hooks that return null instead of throwing if the provider isn't ready.
- * This prevents client-side exceptions during hydration or transition states.
- */
 export function useFirebaseApp() {
   const context = useContext(FirebaseContext);
   return context?.app ?? null;
