@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
+import { cn } from '@/lib/utils';
 
 export default function PostItem() {
   const router = useRouter();
@@ -31,6 +33,7 @@ export default function PostItem() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     type: 'lost' as 'lost' | 'found',
@@ -40,6 +43,11 @@ export default function PostItem() {
     location: '',
     imageUrl: '',
   });
+
+  // Ensure client-side rendering only for hydrated components
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,13 +64,20 @@ export default function PostItem() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !user) return;
+    if (!firestore || !user) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "You must be signed in to report an item.",
+      });
+      return;
+    }
     
     setIsSubmitting(true);
 
     let finalImageUrl = formData.imageUrl;
 
-    // If no image provided, generate one with AI
+    // If no image provided, generate one with AI based on description
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
@@ -73,7 +88,6 @@ export default function PostItem() {
         finalImageUrl = result.imageUrl;
       } catch (err) {
         console.error("AI Image Generation failed:", err);
-        // Fallback: we'll just continue without an image, or use static placeholders as before
       } finally {
         setIsGeneratingImage(false);
       }
@@ -85,7 +99,7 @@ export default function PostItem() {
       category: formData.category,
       type: formData.type,
       location: formData.location,
-      imageUrl: finalImageUrl,
+      imageUrl: finalImageUrl || '',
       userId: user.uid,
       status: 'open',
       createdAt: serverTimestamp(),
@@ -100,21 +114,33 @@ export default function PostItem() {
     } catch (err) {
       console.error(err);
       setIsSubmitting(false);
-      toast({ variant: "destructive", title: "Error", description: "Failed to publish report." });
+      toast({ variant: "destructive", title: "Error", description: "Failed to publish report. Please check your connection." });
     }
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
-  
-  if (!user) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#F8FAFC]">
-      <div className="text-center space-y-6 bg-white p-12 rounded-[40px] border shadow-xl max-w-sm">
-        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sign In Required</h2>
-        <p className="text-slate-500 font-medium">You need to be logged in to report a lost or found item.</p>
-        <Button className="w-full h-14 rounded-2xl font-bold text-lg" onClick={() => router.push('/auth/login')}>Log In Now</Button>
+  if (!mounted || authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
+        <p className="mt-4 text-slate-400 font-medium">Initializing reporting center...</p>
       </div>
-    </div>
-  );
+    );
+  }
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#F8FAFC]">
+        <div className="text-center space-y-6 bg-white p-12 rounded-[40px] border shadow-xl max-w-sm">
+          <div className="h-16 w-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto text-red-400">
+            <AlertCircle className="h-8 w-8" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sign In Required</h2>
+          <p className="text-slate-500 font-medium">You need to be logged in to report a lost or found item to the community.</p>
+          <Button className="w-full h-14 rounded-2xl font-bold text-lg" onClick={() => router.push('/auth/login')}>Log In Now</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 2) {
     return (
@@ -127,7 +153,7 @@ export default function PostItem() {
             </div>
             <div className="space-y-2">
               <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Report Published!</h1>
-              <p className="text-slate-500 text-lg font-medium">Your report is now live. We'll scan for potential matches using smart technology.</p>
+              <p className="text-slate-500 text-lg font-medium">Your report is now live. We'll scan for potential matches using community data.</p>
             </div>
             <div className="flex flex-col gap-3 pt-4">
               <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">Browse All Listings</Button>
@@ -145,7 +171,7 @@ export default function PostItem() {
       <main className="container mx-auto px-4 py-16 max-w-3xl">
         <div className="text-center space-y-2 mb-12">
           <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Report an Item</h1>
-          <p className="text-slate-500 text-lg font-medium">Provide as much detail as possible to help the community.</p>
+          <p className="text-slate-500 text-lg font-medium">Provide details to help others identify your item.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] border border-slate-200/60 shadow-2xl shadow-slate-200/50 space-y-10">
@@ -207,7 +233,7 @@ export default function PostItem() {
             <Label htmlFor="description" className="font-bold text-slate-700">Detailed Description</Label>
             <Textarea 
               id="description" 
-              placeholder="Mention any unique marks, brand names, colors, or identifying features..." 
+              placeholder="Color, brand, unique markings (e.g., 'Black round frame spectacles with a small scratch on the left lens')" 
               required 
               value={formData.description} 
               onChange={(e) => setFormData({...formData, description: e.target.value})} 
@@ -218,7 +244,7 @@ export default function PostItem() {
           <div className="space-y-3">
             <Label className="font-bold text-slate-700">Location</Label>
             <Input 
-              placeholder="E.g., Library 2nd floor silent area" 
+              placeholder="E.g., Student Union second floor" 
               required 
               value={formData.location} 
               onChange={(e) => setFormData({...formData, location: e.target.value})} 
@@ -242,7 +268,7 @@ export default function PostItem() {
             >
               {formData.imageUrl ? (
                 <div className="relative aspect-video w-full max-w-[400px] rounded-2xl overflow-hidden shadow-2xl">
-                  <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" />
+                  <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" unoptimized />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <p className="text-white font-bold">Change Photo</p>
                   </div>
@@ -257,7 +283,7 @@ export default function PostItem() {
                       Upload your own photo
                     </p>
                     <p className="text-sm text-slate-400 font-medium max-w-[240px] mx-auto">
-                      Real photos help others identify items 10x faster. We'll generate one if you don't have it.
+                      Real photos help the community find matches faster. We'll generate a realistic one if you don't have it.
                     </p>
                   </div>
                 </>
@@ -270,7 +296,7 @@ export default function PostItem() {
             {isSubmitting ? (
               <span className="flex items-center gap-3">
                 <Loader2 className="h-6 w-6 animate-spin" /> 
-                {isGeneratingImage ? "Generating Smart Image..." : "Publishing Report..."}
+                {isGeneratingImage ? "Generating Detailed Image..." : "Publishing Report..."}
               </span>
             ) : 'Publish Report'}
           </Button>
