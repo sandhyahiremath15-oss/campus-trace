@@ -12,7 +12,7 @@ import { firebaseConfig } from './config';
 export function initializeFirebase() {
   // Never run on server
   if (typeof window === 'undefined') {
-    return { app: null, db: null, auth: null };
+    return { app: null, firestore: null, auth: null };
   }
 
   try {
@@ -28,8 +28,8 @@ export function initializeFirebase() {
     const isConfigValid = !!config.apiKey && !!config.projectId;
 
     if (!isConfigValid) {
-      console.warn('CampusTrace: Firebase configuration is missing or incomplete.');
-      return { app: null, db: null, auth: null };
+      console.warn('CampusTrace: Firebase configuration is missing or incomplete. Check environment variables.');
+      return { app: null, firestore: null, auth: null };
     }
 
     let app: FirebaseApp;
@@ -43,11 +43,11 @@ export function initializeFirebase() {
 
     return { 
       app, 
-      db: getFirestore(app), 
+      firestore: getFirestore(app), 
       auth: getAuth(app) 
     };
   } catch (error) {
     console.error('CampusTrace: Firebase initialization failed:', error);
-    return { app: null, db: null, auth: null };
+    return { app: null, firestore: null, auth: null };
   }
 }

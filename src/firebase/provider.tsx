@@ -39,14 +39,14 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     // Only run on client mount to prevent hydration mismatches
     const initialized = initializeFirebase();
     setState({
-      ...initialized,
+      app: initialized.app,
+      firestore: initialized.firestore,
+      auth: initialized.auth,
       isInitialized: true,
       mounted: true,
     });
   }, []);
 
-  // To prevent "Application Error" during hydration, we can choose to render 
-  // a shell or simply provide the null context until mounted.
   return (
     <FirebaseContext.Provider value={state}>
       {children}
