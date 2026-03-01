@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { MapPin, User, ChevronLeft, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import { MapPin, User, ChevronLeft, Loader2, Info, CheckCircle2, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AIMatches } from '@/components/ai-matches';
@@ -12,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore, useDoc, useUser } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -55,13 +56,15 @@ export default function ItemDetail() {
   };
 
   const displayImage = useMemo(() => {
-    if (item?.imageUrl && !imgError) return item.imageUrl;
+    if (item?.imageUrl && item.imageUrl.trim() !== "" && !imgError) {
+      return item.imageUrl;
+    }
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/800/600';
   }, [item?.imageUrl, item?.category, imgError]);
 
   const imageHint = useMemo(() => {
-    if (item?.imageUrl) return "user uploaded item";
+    if (item?.imageUrl && item.imageUrl.trim() !== "") return "user reported item";
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageHint || "campus item";
   }, [item?.imageUrl, item?.category]);
@@ -99,16 +102,23 @@ export default function ItemDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border shadow-xl bg-white group">
-            <Image 
-              src={displayImage} 
-              alt={item.title || 'Campus Item'} 
-              fill 
-              className="object-cover" 
-              data-ai-hint={imageHint}
-              onError={() => setImgError(true)}
-              unoptimized={displayImage.startsWith('data:')}
-            />
+          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border shadow-xl bg-slate-50 group flex items-center justify-center">
+            {imgError ? (
+              <div className="flex flex-col items-center gap-2 text-slate-300">
+                <ImageOff className="h-16 w-16" />
+                <span className="text-sm font-bold uppercase tracking-widest">Image unavailable</span>
+              </div>
+            ) : (
+              <Image 
+                src={displayImage} 
+                alt={item.title || 'Campus Item'} 
+                fill 
+                className="object-cover" 
+                data-ai-hint={imageHint}
+                onError={() => setImgError(true)}
+                unoptimized={displayImage.startsWith('data:')}
+              />
+            )}
             <Badge className={cn("absolute left-6 top-6 px-6 py-2 shadow-2xl text-lg font-black uppercase tracking-widest", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
               {item.type}
             </Badge>
@@ -122,7 +132,7 @@ export default function ItemDetail() {
                   {item.status}
                 </Badge>
               </div>
-              <h1 className="text-5xl font-black font-headline text-primary leading-tight">{item.title || 'Untitled Report'}</h1>
+              <h1 className="text-5xl font-black font-headline text-primary leading-tight break-words">{item.title || 'Untitled Report'}</h1>
               <div className="flex items-center gap-2 text-muted-foreground text-lg">
                 <MapPin className="h-5 w-5 text-accent" />
                 {item.location}
@@ -134,8 +144,8 @@ export default function ItemDetail() {
                 <Info className="h-5 w-5 text-accent" /> 
                 Report Description
               </h3>
-              <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                {item.description}
+              <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap italic">
+                "{item.description}"
               </p>
             </div>
 
@@ -148,7 +158,7 @@ export default function ItemDetail() {
                 <div className="space-y-4">
                   {isOpen ? (
                     <Button 
-                      className="w-full h-14 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 flex items-center justify-center gap-2"
+                      className="w-full h-14 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 flex items-center justify-center gap-2 shadow-lg shadow-accent/20 transition-all hover:scale-[1.02]"
                       onClick={handleResolve}
                       disabled={isResolving}
                     >
@@ -156,28 +166,28 @@ export default function ItemDetail() {
                       Mark as Resolved
                     </Button>
                   ) : (
-                    <div className="p-4 bg-muted/30 border rounded-2xl text-center text-muted-foreground font-medium">
-                      This item has been marked as {item.status}.
+                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center text-emerald-700 font-bold">
+                      This report has been successfully resolved.
                     </div>
                   )}
-                  <Button variant="outline" className="w-full h-14 text-lg font-bold" disabled>
-                    Edit Listing
+                  <Button variant="outline" className="w-full h-14 text-lg font-bold rounded-2xl" disabled>
+                    Edit Details
                   </Button>
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                      <User className="h-7 w-7" />
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <User className="h-6 w-6" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Posted By</p>
-                      <p className="text-xl font-bold">{item.posterName || 'Anonymous'}</p>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest leading-none mb-1">Posted By</p>
+                      <p className="text-lg font-bold text-slate-800">{item.posterName || 'Campus User'}</p>
                     </div>
                   </div>
-                  <Button className="w-full h-14 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                  <Button className="w-full h-14 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20" asChild>
                     <a href={`mailto:${item.posterEmail}`}>
-                      Contact via Email
+                      Contact Reporter
                     </a>
                   </Button>
                 </>

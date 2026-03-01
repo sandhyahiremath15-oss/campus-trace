@@ -32,13 +32,16 @@ const generateItemImageFlow = ai.defineFlow(
   async (input) => {
     const { media } = await ai.generate({
       model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `A high-resolution, professional product photograph of a lost/found campus item. 
-      Item: ${input.title}. 
-      Specific Visual Details: ${input.description}. 
+      prompt: `A high-resolution, professional product photograph of a lost or found campus item. 
+      The item is: ${input.title}. 
+      Visual details provided by the reporter: ${input.description}. 
       
-      CRITICAL INSTRUCTION: The image must precisely reflect the physical description provided. If the user mentioned "spectacles" with "black frames", do not show anything else. 
-      The item should be centered, sharply focused, and set against a clean, neutral, high-end surface (like light wood or marble). 
-      The lighting should be natural and professional. No text, no people, no distorted shapes.`,
+      CRITICAL INSTRUCTION: The generated image must strictly reflect the physical description. If the user mentioned "blue bottle with silver cap", show exactly that. If "spectacles with black frames", show exactly that. 
+      
+      Composition: The item should be the sole focus, centered in the frame, sharply focused.
+      Setting: Place the item on a clean, neutral, high-end surface like a modern college library desk or a marble tabletop. 
+      Lighting: Natural, bright, professional studio lighting.
+      Exclusions: No people, no text, no watermarks, no distortions, no extra clutter.`,
     });
 
     if (!media || !media.url) {
