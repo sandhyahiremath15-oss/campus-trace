@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2, Sparkles, ChevronLeft } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, Sparkles, ChevronLeft, ImagePlus } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -64,6 +65,43 @@ export default function PostItem() {
     }
   };
 
+  const handleGenerateAI = async () => {
+    if (!formData.title || !formData.description || !formData.category) {
+      toast({
+        variant: "destructive",
+        title: "More Info Needed",
+        description: "Please fill in the title, description, and category first.",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const result = await generateItemImage({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+      });
+      
+      if (result?.imageUrl) {
+        setFormData(prev => ({ ...prev, imageUrl: result.imageUrl }));
+        toast({
+          title: "Visual Generated",
+          description: "AI has created a visual representation for your item.",
+        });
+      }
+    } catch (err) {
+      console.error("AI Visualization failed:", err);
+      toast({
+        variant: "destructive",
+        title: "AI Failed",
+        description: "Could not generate a visual. You can still upload a photo or publish without one.",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -82,35 +120,15 @@ export default function PostItem() {
     }
     
     setIsSubmitting(true);
-    let finalImageUrl = formData.imageUrl;
 
     try {
-      if (!finalImageUrl) {
-        setIsGeneratingImage(true);
-        try {
-          const result = await generateItemImage({
-            title: formData.title,
-            description: formData.description,
-            category: formData.category,
-          });
-          
-          if (result?.imageUrl) {
-            finalImageUrl = result.imageUrl;
-          }
-        } catch (err) {
-          console.error("AI Visualization failed:", err);
-        } finally {
-          setIsGeneratingImage(false);
-        }
-      }
-
       await addDoc(collection(firestore, 'items'), {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         type: formData.type,
         location: formData.location,
-        imageUrl: finalImageUrl || '',
+        imageUrl: formData.imageUrl || '',
         userId: user.uid,
         status: 'open',
         createdAt: serverTimestamp(),
@@ -247,20 +265,33 @@ export default function PostItem() {
           <div className="space-y-4">
             <div className="flex justify-between items-end">
               <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Visual</Label>
-              <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-1">
-                <Sparkles className="h-3 w-3 mr-1" /> AI Visualization
-              </Badge>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-primary font-bold gap-1.5"
+                onClick={handleGenerateAI}
+                disabled={isGeneratingImage || !formData.title || !formData.category}
+              >
+                {isGeneratingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Generate AI Visual
+              </Button>
             </div>
             
             <div 
               onClick={() => fileInputRef.current?.click()} 
               className={cn(
-                "border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all group",
+                "border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center cursor-pointer hover:bg-slate-50 transition-all group min-h-[200px] flex flex-col items-center justify-center",
                 formData.imageUrl && "p-2 border-primary/20 bg-primary/5"
               )}
             >
-              {formData.imageUrl ? (
-                <div className="relative aspect-video rounded-[20px] overflow-hidden shadow-lg">
+              {isGeneratingImage ? (
+                <div className="space-y-4 w-full px-4">
+                  <Skeleton className="h-32 w-full rounded-2xl" />
+                  <p className="text-xs text-primary font-bold animate-pulse">AI is creating a visual for your {formData.title}...</p>
+                </div>
+              ) : formData.imageUrl ? (
+                <div className="relative aspect-video w-full rounded-[20px] overflow-hidden shadow-lg">
                   <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" unoptimized />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <p className="text-white font-bold text-sm">Change Photo</p>
@@ -278,18 +309,18 @@ export default function PostItem() {
                 </div>
               )}
             </div>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+            <input type="file" id="imageUpload" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
           </div>
 
           <Button 
             type="submit" 
             className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20 bg-primary text-white hover:bg-primary/90 transition-all" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGeneratingImage}
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="animate-spin h-6 w-6" />
-                {isGeneratingImage ? "Visualizing..." : "Publishing..."}
+                Publishing...
               </span>
             ) : "Publish Report"}
           </Button>

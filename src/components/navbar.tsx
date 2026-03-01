@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +65,6 @@ export function Navbar() {
     return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
   }, [user]);
 
-  // Prevent hydration mismatch: only render user-specific data after mounting
   const isReady = mounted && !authLoading;
 
   return (
@@ -81,7 +81,6 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navItems.map((item) => (
             <Link
@@ -151,10 +150,9 @@ export function Navbar() {
               </Link>
             </>
           ) : (
-            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+            <Skeleton className="h-10 w-10 rounded-full" />
           )}
 
-          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -183,28 +181,6 @@ export function Navbar() {
                       {item.name}
                     </Link>
                   ))}
-                  {isReady && !user && (
-                    <Link
-                      href="/auth/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted text-muted-foreground text-lg font-medium"
-                    >
-                      <User className="h-5 w-5" />
-                      Sign In
-                    </Link>
-                  )}
-                  {isReady && user && (
-                    <button
-                      onClick={() => {
-                        handleSignOut();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-destructive/10 text-destructive text-lg font-medium text-left"
-                    >
-                      <LogOut className="h-5 w-5" />
-                      Sign Out
-                    </button>
-                  )}
                 </nav>
               </SheetContent>
             </Sheet>
