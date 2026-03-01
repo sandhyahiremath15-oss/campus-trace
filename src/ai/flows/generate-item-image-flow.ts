@@ -37,7 +37,7 @@ const generateItemImageFlow = ai.defineFlow(
     // Construct a highly descriptive prompt for the model
     const prompt = `Task: Generate a realistic, high-quality photograph of this item: ${input.title}.
           
-    SPECIFIC DETAILS:
+    SPECIFIC DETAILS TO REFLECT:
     - Item Name: ${input.title}
     - Visual Description: ${input.description}
     - Category: ${input.category}
@@ -45,8 +45,9 @@ const generateItemImageFlow = ai.defineFlow(
     SCENE REQUIREMENTS:
     - The object should be resting naturally on a campus-like surface (e.g., a library table, grass, or a wooden bench).
     - Use natural lighting and a professional photography style.
+    - IMPORTANT: Ensure the colors and physical characteristics mentioned in the description are clearly visible.
     - NO people, NO hands, NO faces.
-    - NO text, NO watermarks, NO brand logos if possible.
+    - NO text, NO watermarks, NO brand logos.
     - Focus strictly on the physical object described.`;
 
     const { media } = await ai.generate({

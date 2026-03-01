@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2, Sparkles, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, Sparkles, ChevronLeft } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,7 +84,6 @@ export default function PostItem() {
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
-        console.log("Starting Nano-Banana visualization...");
         const result = await generateItemImage({
           title: formData.title,
           description: formData.description,
@@ -133,6 +132,7 @@ export default function PostItem() {
     }
   };
 
+  // Prevent hydration mismatches
   if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -191,7 +191,11 @@ export default function PostItem() {
 
           <div className="space-y-4">
             <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Report Type</Label>
-            <RadioGroup defaultValue="lost" className="grid grid-cols-2 gap-4" onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}>
+            <RadioGroup 
+              value={formData.type} 
+              className="grid grid-cols-2 gap-4" 
+              onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}
+            >
               <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'lost' ? "border-primary bg-primary/5" : "border-slate-100 hover:bg-slate-50")}>
                 <RadioGroupItem value="lost" id="lost" />
                 <Label htmlFor="lost" className="font-bold cursor-pointer">Lost Item</Label>
@@ -210,7 +214,7 @@ export default function PostItem() {
 
           <div className="space-y-4">
             <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Category</Label>
-            <Select required onValueChange={(val) => setFormData({...formData, category: val})}>
+            <Select required value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
               <SelectTrigger className="h-14 rounded-xl">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
@@ -239,7 +243,7 @@ export default function PostItem() {
             <div className="flex justify-between items-end">
               <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Photo</Label>
               <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-1">
-                <Sparkles className="h-3 w-3 mr-1" /> Auto-gen if empty
+                <Sparkles className="h-3 w-3 mr-1" /> Smart Visualization
               </Badge>
             </div>
             
@@ -264,7 +268,7 @@ export default function PostItem() {
                   </div>
                   <div>
                     <p className="font-bold text-slate-700">Upload your own photo</p>
-                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Real photos help the community find matches faster. We'll generate a realistic one if you don't have it.</p>
+                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Real photos help the community find matches faster. Nano-Banana will visualize it if you don't have it.</p>
                   </div>
                 </div>
               )}
