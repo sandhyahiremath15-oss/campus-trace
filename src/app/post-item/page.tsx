@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -96,17 +95,9 @@ export default function PostItem() {
           
           if (result?.imageUrl) {
             finalImageUrl = result.imageUrl;
-            toast({
-              title: "Visual Generated",
-              description: "AI has created a realistic representation for your report.",
-            });
           }
         } catch (err) {
           console.error("AI Visualization failed:", err);
-          toast({
-            title: "AI Visualization Offline",
-            description: "Proceeding with a category placeholder.",
-          });
         } finally {
           setIsGeneratingImage(false);
         }

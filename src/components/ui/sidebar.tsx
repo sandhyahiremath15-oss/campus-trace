@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -642,14 +641,6 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  const [mounted, setMounted] = React.useState(false);
-  
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const skeletonWidth = "70%";
-
   return (
     <div
       ref={ref}
@@ -666,7 +657,7 @@ const SidebarMenuSkeleton = React.forwardRef<
       <Skeleton
         className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
-        style={{ width: mounted ? skeletonWidth : "65%" }}
+        style={{ width: "70%" }}
       />
     </div>
   )
