@@ -24,6 +24,7 @@ export default function Login() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
   
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('sandhya@gmail.com');
   const [password, setPassword] = useState('sandhya@123');
   const [loading, setLoading] = useState(false);
@@ -31,10 +32,14 @@ export default function Login() {
   const [guestLoading, setGuestLoading] = useState(false);
 
   useEffect(() => {
-    if (user && !authLoading) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && user && !authLoading) {
       router.push('/dashboard');
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, mounted]);
 
   const handleGoogleSignIn = async () => {
     if (!auth) return;
@@ -120,7 +125,7 @@ export default function Login() {
     }
   };
 
-  if (authLoading) {
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <Loader2 className="h-8 w-8 animate-spin text-white/50" />

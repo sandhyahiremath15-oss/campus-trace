@@ -19,6 +19,7 @@ export function initializeFirebase() {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
+      console.warn('Firebase configuration is incomplete. Some features may not work.');
       return { app: null, db: null, auth: null };
     }
 
@@ -28,8 +29,10 @@ export function initializeFirebase() {
       app = getApp();
     }
 
-    db = getFirestore(app);
-    auth = getAuth(app);
+    if (app) {
+      db = getFirestore(app);
+      auth = getAuth(app);
+    }
 
     return { app, db, auth };
   } catch (error) {
