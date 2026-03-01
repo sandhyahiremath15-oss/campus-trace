@@ -28,6 +28,7 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -96,10 +97,10 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   }, [mounted, item?.createdAt]);
 
   const displayImage = useMemo(() => {
-    if (item?.imageUrl) return item.imageUrl;
+    if (item?.imageUrl && !imgError) return item.imageUrl;
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
-    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/600/400';
-  }, [item?.imageUrl, item?.category]);
+    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || `https://picsum.photos/seed/${item?.id || 'campus'}/600/400`;
+  }, [item?.imageUrl, item?.category, item?.id, imgError]);
 
   const imageHint = useMemo(() => {
     if (item?.imageUrl) return "user uploaded item";
@@ -138,6 +139,8 @@ export function ItemCard({ item, loading }: ItemCardProps) {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
             data-ai-hint={imageHint}
+            onError={() => setImgError(true)}
+            unoptimized={displayImage.startsWith('data:')}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
           

@@ -23,6 +23,7 @@ export default function ItemDetail() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isResolving, setIsResolving] = useState(false);
+  const [imgError, setImgError] = useState(false);
   
   const itemDocRef = useMemo(() => {
     if (!firestore || !id) return null;
@@ -54,10 +55,10 @@ export default function ItemDetail() {
   };
 
   const displayImage = useMemo(() => {
-    if (item?.imageUrl) return item.imageUrl;
+    if (item?.imageUrl && !imgError) return item.imageUrl;
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/800/600';
-  }, [item?.imageUrl, item?.category]);
+  }, [item?.imageUrl, item?.category, imgError]);
 
   const imageHint = useMemo(() => {
     if (item?.imageUrl) return "user uploaded item";
@@ -105,6 +106,8 @@ export default function ItemDetail() {
               fill 
               className="object-cover" 
               data-ai-hint={imageHint}
+              onError={() => setImgError(true)}
+              unoptimized={displayImage.startsWith('data:')}
             />
             <Badge className={cn("absolute left-6 top-6 px-6 py-2 shadow-2xl text-lg font-black uppercase tracking-widest", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
               {item.type}

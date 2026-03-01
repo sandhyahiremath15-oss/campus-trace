@@ -31,7 +31,10 @@ const generateItemImageFlow = ai.defineFlow(
   async (input) => {
     const { media } = await ai.generate({
       model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `A clear, high-quality professional product photo of the following item on a clean, neutral studio background. The item should be the central focus. Item: ${input.title}. Description: ${input.description}. Style: Realistic, well-lit, sharp focus.`,
+      prompt: `A high-resolution, professional product photograph of the following lost/found item: ${input.title}. 
+      Specific details to include: ${input.description}. 
+      The item should be centered, sharply focused, and set against a clean, neutral, slightly textured surface (like a wooden table or a light stone floor). 
+      Lighting should be natural and bright. No text, no people, no hands. Realistic style.`,
     });
 
     if (!media || !media.url) {
