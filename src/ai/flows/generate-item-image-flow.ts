@@ -1,8 +1,7 @@
-
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow for generating a realistic image 
- * of a lost or found item based on its specific description using Imagen 4.
+ * of a lost or found item based on its specific description using Gemini 2.5 Flash Image.
  */
 
 import {ai} from '@/ai/genkit';
@@ -30,26 +29,31 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (input) => {
-    const { media } = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: `A high-resolution, professional product photograph of a lost or found campus item. 
-      The item is: ${input.title}. 
-      Visual details provided by the reporter: ${input.description}. 
+    // Using Gemini 2.5 Flash Image (Nano-Banana) for generation
+    const response = await ai.generate({
+      model: 'googleai/gemini-2.5-flash-image',
+      prompt: `Generate a single, professional, high-resolution product photograph of a lost or found campus item.
       
-      CRITICAL INSTRUCTION: The generated image must strictly reflect the physical description. If the user mentioned "blue bottle with silver cap", show exactly that. If "spectacles with black frames", show exactly that. 
+      ITEM: ${input.title}
+      DESCRIPTION: ${input.description}
       
-      Composition: The item should be the sole focus, centered in the frame, sharply focused.
-      Setting: Place the item on a clean, neutral, high-end surface like a modern college library desk or a marble tabletop. 
-      Lighting: Natural, bright, professional studio lighting.
-      Exclusions: No people, no text, no watermarks, no distortions, no extra clutter.`,
+      VISUAL RULES:
+      - The image MUST strictly show the item described.
+      - The item must be centered and in clear focus.
+      - Background: A clean, neutral, blurred campus setting (library desk or stone bench).
+      - Lighting: Bright, natural, professional.
+      - No people, no text, no watermarks.`,
+      config: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
     });
 
-    if (!media || !media.url) {
+    if (!response.media || !response.media.url) {
       throw new Error('Failed to generate accurate item image');
     }
 
     return {
-      imageUrl: media.url,
+      imageUrl: response.media.url,
     };
   }
 );
