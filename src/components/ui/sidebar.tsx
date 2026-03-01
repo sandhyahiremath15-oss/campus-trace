@@ -648,6 +648,8 @@ const SidebarMenuSkeleton = React.forwardRef<
     setMounted(true);
   }, []);
 
+  const skeletonWidth = "70%";
+
   return (
     <div
       ref={ref}
@@ -664,7 +666,7 @@ const SidebarMenuSkeleton = React.forwardRef<
       <Skeleton
         className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
-        style={{ width: mounted ? "70%" : "65%" }}
+        style={{ width: mounted ? skeletonWidth : "65%" }}
       />
     </div>
   )

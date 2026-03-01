@@ -23,6 +23,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
 
 /**
  * Robust Firebase Provider that handles hydration safely.
+ * Ensures Firebase is only initialized on the client after initial mount.
  */
 export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<FirebaseContextType>({
@@ -33,7 +34,6 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   });
 
   useEffect(() => {
-    // We only initialize Firebase in the browser after the initial mount
     const initialized = initializeFirebase();
     setState({
       ...initialized,
@@ -49,8 +49,7 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
 }
 
 export function useFirebase() {
-  const context = useContext(FirebaseContext);
-  return context;
+  return useContext(FirebaseContext);
 }
 
 export function useFirestore() {
