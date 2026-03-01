@@ -94,14 +94,15 @@ export default function PostItem() {
           finalImageUrl = result.imageUrl;
           toast({
             title: "Smart Visual Ready",
-            description: "Nano-Banana has generated an accurate image for your report.",
+            description: "Nano-Banana has generated a realistic visual for your report.",
           });
         }
       } catch (err) {
         console.error("AI Generation failed:", err);
+        // We don't block submission if AI fails, just proceed without custom image
         toast({
           title: "Generation Notice",
-          description: "AI visualization skipped due to high demand. Using category placeholder.",
+          description: "Smart visual generation was skipped. Using category placeholder.",
         });
       } finally {
         setIsGeneratingImage(false);
@@ -132,8 +133,17 @@ export default function PostItem() {
     }
   };
 
-  // Prevent hydration mismatches
-  if (!mounted || authLoading) {
+  // Prevent hydration mismatches and ensure page doesn't load until state is ready
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin h-8 w-8 text-primary/40" />
+      </div>
+    );
+  }
+
+  // Handle loading state separately after mounting to prevent flashing
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-8 w-8 text-primary/40" />

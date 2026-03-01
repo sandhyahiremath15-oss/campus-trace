@@ -2,6 +2,10 @@
 /**
  * @fileOverview This file defines a Genkit flow for generating a realistic image 
  * of a lost or found item using Gemini 2.5 Flash Image (Nano-Banana).
+ * 
+ * - generateItemImage - A function that handles the AI image generation process.
+ * - GenerateItemImageInput - The input type for the function.
+ * - GenerateItemImageOutput - The return type for the function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -21,7 +25,7 @@ export type GenerateItemImageOutput = z.infer<typeof GenerateItemImageOutputSche
 
 /**
  * Generates a realistic visual of a campus item based on its title and description.
- * Uses Gemini 2.5 Flash Image (Nano-Banana).
+ * Uses Gemini 2.5 Flash Image (Nano-Banana) to ensure visual matching.
  */
 export async function generateItemImage(input: GenerateItemImageInput): Promise<GenerateItemImageOutput> {
   return generateItemImageFlow(input);
@@ -34,28 +38,27 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (input) => {
-    // Construct a highly descriptive prompt for the model
-    const prompt = `Task: Generate a realistic, high-quality photograph of this item: ${input.title}.
+    // Highly descriptive prompt for Nano-Banana to ensure the visual matches the text description
+    const prompt = `Task: Generate a realistic, professional photograph of a lost or found campus item.
           
-    SPECIFIC DETAILS TO REFLECT:
-    - Item Name: ${input.title}
-    - Visual Description: ${input.description}
+    ITEM TO VISUALIZE:
+    - Name: ${input.title}
+    - Specific Details: ${input.description}
     - Category: ${input.category}
     
-    SCENE REQUIREMENTS:
-    - The object should be resting naturally on a campus-like surface (e.g., a library table, grass, or a wooden bench).
-    - Use natural lighting and a professional photography style.
-    - IMPORTANT: Ensure the colors and physical characteristics mentioned in the description are clearly visible.
-    - NO people, NO hands, NO faces.
-    - NO text, NO watermarks, NO brand logos.
-    - Focus strictly on the physical object described.`;
+    VISUAL REQUIREMENTS:
+    - The image MUST accurately reflect the colors, materials, and physical characteristics described in the "Specific Details".
+    - Place the item naturally in a clean campus environment (e.g., on a wooden table, in a library, or on green grass).
+    - Use natural lighting and soft focus for the background to make the item stand out.
+    - DO NOT include any text, logos, hands, or faces in the image.
+    - The style should look like a high-quality smartphone photo taken by a student.
+    - If the item is "Spectacles", show them clearly with the described frame color and style.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
       prompt,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
-        // Set permissive safety thresholds to avoid blocking generation of items like ID cards or wallets
         safetySettings: [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -66,7 +69,7 @@ const generateItemImageFlow = ai.defineFlow(
     });
 
     if (!media || !media.url) {
-      throw new Error('Nano-Banana failed to generate a visual for this item. Media was not returned.');
+      throw new Error('Nano-Banana was unable to generate a visual for this item at this time.');
     }
 
     return {
