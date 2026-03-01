@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -15,6 +14,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { CampusItem } from '@/lib/types';
 import { useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function ItemDetail() {
   const { id } = useParams();
@@ -53,6 +53,18 @@ export default function ItemDetail() {
     }
   };
 
+  const displayImage = useMemo(() => {
+    if (item?.imageUrl) return item.imageUrl;
+    const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
+    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/800/600';
+  }, [item?.imageUrl, item?.category]);
+
+  const imageHint = useMemo(() => {
+    if (item?.imageUrl) return "user uploaded item";
+    const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
+    return categoryPlaceholder?.imageHint || "campus item";
+  }, [item?.imageUrl, item?.category]);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Loader2 className="animate-spin h-10 w-10 text-primary" />
@@ -88,10 +100,11 @@ export default function ItemDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border shadow-xl bg-white group">
             <Image 
-              src={item.imageUrl || `https://picsum.photos/seed/${item.id}/800/600`} 
+              src={displayImage} 
               alt={item.title || 'Campus Item'} 
               fill 
               className="object-cover" 
+              data-ai-hint={imageHint}
             />
             <Badge className={cn("absolute left-6 top-6 px-6 py-2 shadow-2xl text-lg font-black uppercase tracking-widest", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
               {item.type}
@@ -170,7 +183,6 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        {/* AI Matches Section */}
         {isOpen && (
           <div className="mt-16">
             <AIMatches currentItem={item} />

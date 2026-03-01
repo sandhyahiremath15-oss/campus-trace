@@ -14,6 +14,7 @@ import { toggleSaveItem } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface ItemCardProps {
   item?: CampusItem;
@@ -28,7 +29,6 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Debugging Hydration: Ensure we only render dynamic content after mount
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -95,6 +95,18 @@ export function ItemCard({ item, loading }: ItemCardProps) {
     }
   }, [mounted, item?.createdAt]);
 
+  const displayImage = useMemo(() => {
+    if (item?.imageUrl) return item.imageUrl;
+    const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
+    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/600/400';
+  }, [item?.imageUrl, item?.category]);
+
+  const imageHint = useMemo(() => {
+    if (item?.imageUrl) return "user uploaded item";
+    const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
+    return categoryPlaceholder?.imageHint || "campus item";
+  }, [item?.imageUrl, item?.category]);
+
   if (loading || !item) {
     return (
       <Card className="overflow-hidden border-none shadow-sm bg-white ring-1 ring-slate-100 rounded-[32px]">
@@ -121,11 +133,11 @@ export function ItemCard({ item, loading }: ItemCardProps) {
       <Link href={`/items/${item.id}`} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
-            src={item.imageUrl || `https://picsum.photos/seed/${item.id}/600/400`}
+            src={displayImage}
             alt={item.title || 'Campus Item'}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-110"
-            data-ai-hint="campus item"
+            data-ai-hint={imageHint}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
           
