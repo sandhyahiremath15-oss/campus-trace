@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2, Sparkles, ChevronLeft, ImagePlus, Wand2 } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, ChevronLeft, ImagePlus, Wand2, DollarSign } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,12 +43,13 @@ export default function PostItem() {
   const [step, setStep] = useState(1);
   
   const [formData, setFormData] = useState({
-    type: 'lost' as 'lost' | 'found',
+    type: 'found' as 'lost' | 'found',
     title: '',
     description: '',
     category: '',
     location: '',
     imageUrl: '',
+    price: '',
   });
 
   useEffect(() => {
@@ -67,52 +69,11 @@ export default function PostItem() {
     }
   };
 
-  const handleGenerateAI = async () => {
-    if (!formData.title || !formData.category) {
-      toast({
-        variant: "destructive",
-        title: "More Info Needed",
-        description: "Please fill in the title and category first.",
-      });
-      return;
-    }
-
-    setIsGeneratingImage(true);
-    try {
-      const result = await generateItemImage({
-        title: formData.title,
-        description: formData.description || `A ${formData.category} item lost/found at ${formData.location}`,
-        category: formData.category,
-      });
-      
-      if (result?.imageUrl) {
-        setFormData(prev => ({ ...prev, imageUrl: result.imageUrl }));
-        toast({
-          title: "Visual Generated",
-          description: "AI has created a representation for your item.",
-        });
-      }
-    } catch (err) {
-      console.error("AI Visualization failed:", err);
-      toast({
-        variant: "destructive",
-        title: "AI Failed",
-        description: "Could not generate a visual. You can still upload a photo manually.",
-      });
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!firestore) {
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Database is not initialized. Please ensure your environment variables are configured.",
-      });
+      toast({ variant: "destructive", title: "Connection Error", description: "Database is not initialized." });
       return;
     }
 
@@ -125,14 +86,29 @@ export default function PostItem() {
 
     try {
       let finalUser = user;
-      
-      // Automatic anonymous sign-in to remove "Session Required" blockers
       if (!finalUser && auth) {
         try {
           const result = await signInAnonymously(auth);
           finalUser = result.user;
         } catch (authErr) {
-          console.warn("Anonymous auth failed, attempting to save anyway...");
+          console.warn("Anonymous auth failed");
+        }
+      }
+
+      let finalImageUrl = formData.imageUrl;
+
+      // Automatically generate image if not provided
+      if (!finalImageUrl) {
+        try {
+          const aiResult = await generateItemImage({
+            title: formData.title,
+            description: formData.description,
+            category: formData.category,
+          });
+          finalImageUrl = aiResult.imageUrl;
+        } catch (err) {
+          console.error("Auto image generation failed", err);
+          finalImageUrl = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1080&auto=format&fit=crop";
         }
       }
 
@@ -142,7 +118,8 @@ export default function PostItem() {
         category: formData.category,
         type: formData.type,
         location: formData.location,
-        imageUrl: formData.imageUrl || '',
+        imageUrl: finalImageUrl,
+        price: formData.price || 'N/A',
         userId: finalUser?.uid || 'anonymous_guest',
         status: 'open',
         createdAt: serverTimestamp(),
@@ -151,17 +128,10 @@ export default function PostItem() {
       });
       
       setStep(2);
-      toast({
-        title: "Success",
-        description: "Your report has been published.",
-      });
+      toast({ title: "Success", description: "Your report has been published." });
     } catch (err: any) {
       console.error("Firestore submission error:", err);
-      toast({ 
-        variant: "destructive", 
-        title: "Submission Error", 
-        description: "Could not save your report. Please try again." 
-      });
+      toast({ variant: "destructive", title: "Submission Error", description: "Could not save your report." });
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +155,7 @@ export default function PostItem() {
               <CheckCircle2 className="h-10 w-10" />
             </div>
             <h1 className="text-4xl font-black tracking-tighter text-slate-900">Published!</h1>
-            <p className="text-slate-500 font-medium text-lg">Your report is now live in the campus community feed.</p>
+            <p className="text-slate-500 font-medium text-lg">Your report is now live with an AI-enhanced visual.</p>
             <div className="flex flex-col gap-3 pt-4">
               <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold bg-primary shadow-xl shadow-primary/20">View Feed</Button>
               <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold text-slate-400">Dashboard</Button>
@@ -209,35 +179,45 @@ export default function PostItem() {
           <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
           
           <div className="space-y-3">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">New Report</h2>
-            <p className="text-slate-500 font-medium">Help the campus find its way back home.</p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Post Listing</h2>
+            <p className="text-slate-500 font-medium">Add details and let AI handle the photography.</p>
           </div>
 
           <div className="space-y-4">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Item Status</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Type</Label>
             <RadioGroup 
               value={formData.type} 
               className="grid grid-cols-2 gap-4" 
               onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}
             >
-              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'lost' ? "border-red-500 bg-red-50 text-red-900" : "border-slate-50 bg-slate-50/50 hover:bg-slate-100")}>
+              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'lost' ? "border-red-500 bg-red-50 text-red-900" : "border-slate-50 bg-slate-50/50")}>
                 <RadioGroupItem value="lost" id="lost" />
-                <Label htmlFor="lost" className="font-bold cursor-pointer">I Lost Something</Label>
+                <Label htmlFor="lost" className="font-bold cursor-pointer">Lost Item</Label>
               </div>
-              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'found' ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-slate-50 bg-slate-50/50 hover:bg-slate-100")}>
+              <div className={cn("flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all", formData.type === 'found' ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-slate-50 bg-slate-50/50")}>
                 <RadioGroupItem value="found" id="found" />
-                <Label htmlFor="found" className="font-bold cursor-pointer">I Found Something</Label>
+                <Label htmlFor="found" className="font-bold cursor-pointer">Found Item</Label>
               </div>
             </RadioGroup>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <Label htmlFor="title" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Title</Label>
-              <Input id="title" placeholder="e.g. Spectacles" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner focus:ring-2 focus:ring-primary/20" />
+              <Label htmlFor="title" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Product Title</Label>
+              <Input id="title" placeholder="e.g. Vintage Camera" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
             </div>
 
             <div className="space-y-3">
+              <Label htmlFor="price" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Estimated Value ($)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input id="price" placeholder="0.00" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="h-14 pl-10 rounded-2xl bg-slate-50 border-none shadow-inner" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Category</Label>
               <Select required value={formData.category} onValueChange={(val) => setFormData({...formData, category: val})}>
                 <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner">
@@ -253,50 +233,30 @@ export default function PostItem() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Location</Label>
+              <Input placeholder="Last seen / Found at..." required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+            </div>
           </div>
 
           <div className="space-y-3">
             <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Description</Label>
-            <Textarea id="description" placeholder="Any distinguishing marks or details?" required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="min-h-[120px] rounded-2xl bg-slate-50 border-none py-4 shadow-inner" />
-          </div>
-
-          <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Location</Label>
-            <Input placeholder="e.g. admin block" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner" />
+            <Textarea id="description" placeholder="Provide details for AI generation..." required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="min-h-[120px] rounded-2xl bg-slate-50 border-none py-4 shadow-inner" />
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-between items-end">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Visual</Label>
-              <button 
-                type="button" 
-                onClick={handleGenerateAI}
-                disabled={isGeneratingImage || !formData.title || !formData.category}
-                className="text-primary font-bold text-xs flex items-center gap-1.5 hover:underline disabled:opacity-30"
-              >
-                {isGeneratingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
-                Generate AI Visual
-              </button>
-            </div>
-            
+            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Image (Optional)</Label>
             <div 
               onClick={() => fileInputRef.current?.click()} 
               className={cn(
-                "border-2 border-dashed border-slate-100 rounded-[32px] p-10 text-center cursor-pointer hover:bg-slate-50 transition-all group min-h-[220px] flex flex-col items-center justify-center bg-slate-50/30",
+                "border-2 border-dashed border-slate-100 rounded-[32px] p-10 text-center cursor-pointer hover:bg-slate-50 transition-all group min-h-[180px] flex flex-col items-center justify-center bg-slate-50/30",
                 formData.imageUrl && "p-2 border-primary/20 bg-primary/5"
               )}
             >
-              {isGeneratingImage ? (
-                <div className="space-y-4 w-full px-4 text-center">
-                  <Skeleton className="h-40 w-full rounded-2xl bg-primary/5" />
-                  <p className="text-xs text-primary font-bold animate-pulse">AI is creating a visual for your {formData.title}...</p>
-                </div>
-              ) : formData.imageUrl ? (
+              {formData.imageUrl ? (
                 <div className="relative aspect-video w-full rounded-[24px] overflow-hidden shadow-2xl">
                   <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" unoptimized />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <p className="text-white font-bold text-sm">Change Image</p>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -305,7 +265,7 @@ export default function PostItem() {
                   </div>
                   <div>
                     <p className="font-bold text-slate-900">Upload a photo</p>
-                    <p className="text-xs text-slate-400 max-w-[200px] mx-auto mt-1">Or let AI generate a visual representation for you.</p>
+                    <p className="text-xs text-slate-400 max-w-[200px] mx-auto mt-1">Leave blank to let AI generate a professional product shot.</p>
                   </div>
                 </div>
               )}
@@ -316,14 +276,14 @@ export default function PostItem() {
           <Button 
             type="submit" 
             className="w-full h-16 text-xl font-bold rounded-2xl shadow-2xl shadow-primary/30 bg-primary text-white hover:bg-primary/90 transition-all hover:scale-[1.01]" 
-            disabled={isSubmitting || isGeneratingImage}
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="animate-spin h-6 w-6" />
-                Publishing...
+                Processing AI Visual...
               </span>
-            ) : "Publish Report"}
+            ) : "Publish Listing"}
           </Button>
         </form>
       </main>

@@ -14,6 +14,7 @@ export interface CampusItem {
   userId: string;
   status: ItemStatus;
   createdAt: any; // Firestore Timestamp
+  price?: string; // New field for listings
   // Extra fields for de-normalization/UI convenience
   posterName?: string;
   posterEmail?: string;

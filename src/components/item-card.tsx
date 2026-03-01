@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Tag, ChevronRight, Heart, Loader2, Package } from 'lucide-react';
+import { MapPin, Tag, ChevronRight, Heart, Loader2, Package, DollarSign } from 'lucide-react';
 import { CampusItem } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -118,6 +119,13 @@ export function ItemCard({ item, loading }: ItemCardProps) {
           <button onClick={handleSave} className={cn("absolute left-4 top-4 h-10 w-10 rounded-xl flex items-center justify-center bg-white/80 backdrop-blur-md shadow-lg", isSaved && "text-red-500")}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isSaved && "fill-current")} />}
           </button>
+          
+          {item.price && item.price !== 'N/A' && (
+            <div className="absolute left-4 bottom-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg shadow-sm flex items-center gap-1 text-xs font-bold text-slate-900">
+              <DollarSign className="h-3 w-3" />
+              {item.price}
+            </div>
+          )}
         </div>
         
         <CardHeader className="p-6 pb-2">
