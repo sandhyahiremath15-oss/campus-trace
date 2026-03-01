@@ -15,7 +15,6 @@ export default function Home() {
 
   const latestQuery = useMemo(() => {
     if (!firestore) return null;
-    // Simplified query to avoid index requirements on first deploy
     return query(
       collection(firestore, 'items'),
       limit(10)
@@ -24,7 +23,6 @@ export default function Home() {
 
   const { data: rawItems, loading } = useCollection<CampusItem>(latestQuery);
 
-  // Sort and filter in memory to guarantee stability and performance
   const latestItems = useMemo(() => {
     if (!rawItems) return [];
     return rawItems
@@ -46,10 +44,6 @@ export default function Home() {
         <section className="relative py-24 md:py-32 overflow-hidden bg-white">
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 text-primary text-sm font-black uppercase tracking-widest border border-primary/10">
-                <Sparkles className="h-4 w-4" />
-                <span>AI-Powered Lost & Found</span>
-              </div>
               <h1 className="text-6xl md:text-8xl font-black font-headline text-slate-900 leading-[0.9] tracking-tighter">
                 Trace it back to <br />
                 <span className="text-primary italic">its owner.</span>
@@ -135,8 +129,8 @@ export default function Home() {
                 <div className="w-20 h-20 bg-primary/20 rounded-[32px] flex items-center justify-center mx-auto text-primary">
                   <MapPin className="h-10 w-10" />
                 </div>
-                <h3 className="text-2xl font-black font-headline tracking-tight">AI Matching</h3>
-                <p className="text-slate-400 font-medium text-lg leading-relaxed">Our AI cross-references listings to suggest potential matches instantly.</p>
+                <h3 className="text-2xl font-black font-headline tracking-tight">Smart Matching</h3>
+                <p className="text-slate-400 font-medium text-lg leading-relaxed">Our matching system cross-references listings to suggest potential connections instantly.</p>
               </div>
             </div>
           </div>

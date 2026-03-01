@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -59,7 +58,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
 
         setMatches(suggestedItems);
       } catch (error) {
-        console.error("Failed to fetch AI matches:", error);
+        console.error("Failed to fetch matching suggestions:", error);
       } finally {
         setAiLoading(false);
       }
@@ -81,7 +80,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
         </div>
         <div className="space-y-4 w-full max-w-xs mx-auto">
           <div className="space-y-2">
-            <p className="font-black text-slate-900 font-headline uppercase tracking-widest text-xs">AI Matchmaking</p>
+            <p className="font-black text-slate-900 font-headline uppercase tracking-widest text-xs">Smart Matchmaking</p>
             <p className="text-slate-500 font-medium text-sm">Analyzing physical attributes and location data to find the owner...</p>
           </div>
           <Progress value={progress} className="h-1.5" />
@@ -101,7 +100,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
           </div>
           <div className="space-y-0.5">
             <h2 className="text-3xl font-black font-headline text-slate-900 tracking-tight">Smart Matches</h2>
-            <p className="text-slate-500 text-sm font-medium">AI identifies potential connections between listings.</p>
+            <p className="text-slate-500 text-sm font-medium">Potential connections identified between listings.</p>
           </div>
         </div>
       </div>
@@ -116,7 +115,7 @@ export function AIMatches({ currentItem }: AIMatchesProps) {
                   <CheckCircle2 className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <span className="font-black text-accent uppercase text-[10px] tracking-widest block mb-1">Reason for Suggestion</span>
+                  <span className="font-black text-accent uppercase text-[10px] tracking-widest block mb-1">Match Reasoning</span>
                   <p className="text-slate-700 font-medium leading-relaxed">{item.matchReason}</p>
                 </div>
               </CardContent>

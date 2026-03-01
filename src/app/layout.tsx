@@ -1,4 +1,3 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
@@ -7,7 +6,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const metadata: Metadata = {
   title: 'CampusTrace | Lost & Found Community Portal',
-  description: 'Helping campus communities reunite with their lost belongings through AI-powered matching.',
+  description: 'Helping campus communities reunite with their lost belongings through smart community matching.',
 };
 
 export default function RootLayout({
