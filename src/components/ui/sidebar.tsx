@@ -645,10 +645,11 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
+  // Use a stable initial state for the first render
   const [width, setWidth] = React.useState("70%")
 
   React.useEffect(() => {
-    // This only runs on the client, preventing the "Application Error" hydration mismatch
+    // Only randomize after mount to match hydration
     setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
   }, [])
 
@@ -666,13 +667,9 @@ const SidebarMenuSkeleton = React.forwardRef<
         />
       )}
       <Skeleton
-        className="h-4 flex-1 max-w-[--skeleton-width]"
+        className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
+        style={{ width }}
       />
     </div>
   )

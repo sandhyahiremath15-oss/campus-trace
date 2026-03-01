@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
@@ -14,6 +15,7 @@ let auth: Auth | null = null;
  * Returns null values if the environment is not a browser or config is invalid.
  */
 export function initializeFirebase() {
+  // Defensive check for non-browser environments
   if (typeof window === 'undefined') {
     return { app: null, db: null, auth: null };
   }
@@ -22,7 +24,6 @@ export function initializeFirebase() {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 
     if (!isConfigValid) {
-      console.warn('Firebase configuration is missing. Ensure NEXT_PUBLIC_FIREBASE_* variables are set.');
       return { app: null, db: null, auth: null };
     }
 
