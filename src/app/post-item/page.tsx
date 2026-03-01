@@ -26,8 +26,8 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 /**
- * @fileOverview The Post Item page provides a multi-step form to report lost or found items.
- * It uses a "mounted" hydration guard to prevent client-side exceptions during initial load.
+ * @fileOverview The Post Item page handles item reporting with AI visualization.
+ * Robust hydration guards are implemented to prevent client-side exceptions.
  */
 export default function PostItem() {
   const router = useRouter();
@@ -73,21 +73,21 @@ export default function PostItem() {
     if (!firestore || !user) {
       toast({
         variant: "destructive",
-        title: "Action Required",
-        description: "Please ensure you are signed in to report items.",
+        title: "Session Required",
+        description: "Please sign in to publish a report.",
       });
       return;
     }
 
     if (!formData.category) {
-      toast({ variant: "destructive", title: "Missing Category", description: "Please select an item category first." });
+      toast({ variant: "destructive", title: "Missing Category", description: "Please select an item category." });
       return;
     }
     
     setIsSubmitting(true);
     let finalImageUrl = formData.imageUrl;
 
-    // AI Generation if no user photo provided
+    // Trigger Nano-Banana visual generation if no photo provided
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
@@ -97,16 +97,15 @@ export default function PostItem() {
           category: formData.category,
         });
         
-        if (result && result.imageUrl) {
+        if (result?.imageUrl) {
           finalImageUrl = result.imageUrl;
           toast({
-            title: "Smart Visual Generated",
-            description: "Nano-Banana has created a realistic image based on your description.",
+            title: "Nano-Banana Visual Created",
+            description: "A realistic representation has been generated for your report.",
           });
         }
       } catch (err) {
         console.error("Nano-Banana failed:", err);
-        // We continue with a placeholder if generation fails
       } finally {
         setIsGeneratingImage(false);
       }
@@ -128,14 +127,13 @@ export default function PostItem() {
       });
       setStep(2);
     } catch (err) {
-      console.error("Firestore error:", err);
-      toast({ variant: "destructive", title: "Submit Failed", description: "We couldn't save your report. Please try again." });
+      console.error("Firestore submission error:", err);
+      toast({ variant: "destructive", title: "Submission Error", description: "Could not save your report. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Crucial: Hydration guard to prevent client-side exceptions
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -149,7 +147,7 @@ export default function PostItem() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center space-y-4">
           <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
-          <p className="text-slate-500 font-medium">Verifying Session...</p>
+          <p className="text-slate-500 font-medium">Authenticating...</p>
         </div>
       </div>
     );
@@ -160,7 +158,7 @@ export default function PostItem() {
       <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
         <div className="text-center space-y-6 bg-white p-12 rounded-[40px] shadow-xl max-w-sm">
           <h2 className="text-3xl font-bold">Sign In Required</h2>
-          <p className="text-slate-500">Log in to contribute to the campus community.</p>
+          <p className="text-slate-500">Log in to contribute to the community feed.</p>
           <Button className="w-full h-14 rounded-2xl font-bold" onClick={() => router.push('/auth/login')}>Log In</Button>
         </div>
       </div>
@@ -168,7 +166,7 @@ export default function PostItem() {
   }
 
   if (step === 2) {
-    return (
+    return (step === 2 && (
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
@@ -177,15 +175,15 @@ export default function PostItem() {
               <CheckCircle2 className="h-10 w-10" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Report Published!</h1>
-            <p className="text-slate-500">The community can now view and help match your item.</p>
+            <p className="text-slate-500">Your report is now live. Nano-Banana will help find a match.</p>
             <div className="flex flex-col gap-3 pt-4">
               <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold">View Feed</Button>
-              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold">My Dashboard</Button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold">Dashboard</Button>
             </div>
           </div>
         </main>
       </div>
-    );
+    ));
   }
 
   return (
@@ -200,7 +198,7 @@ export default function PostItem() {
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] shadow-2xl space-y-8 border border-slate-100">
           <div className="space-y-4">
             <h2 className="text-3xl font-bold text-slate-900">New Report</h2>
-            <p className="text-slate-500 font-medium">Provide details to help us find the correct owner.</p>
+            <p className="text-slate-500 font-medium">Provide details for AI matching.</p>
           </div>
 
           <div className="space-y-4">
@@ -223,7 +221,7 @@ export default function PostItem() {
 
           <div className="space-y-4">
             <Label htmlFor="title" className="text-sm font-black uppercase tracking-widest text-slate-400">Item Title</Label>
-            <Input id="title" placeholder="e.g. Blue Spectacles" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-xl text-base" />
+            <Input id="title" placeholder="e.g. Spectacles with Gold Frame" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-14 rounded-xl text-base" />
           </div>
 
           <div className="space-y-4">
@@ -250,12 +248,12 @@ export default function PostItem() {
 
           <div className="space-y-4">
             <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Location</Label>
-            <Input placeholder="e.g. Science Building, 2nd Floor" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-xl text-base" />
+            <Input placeholder="e.g. Science Library, Floor 2" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="h-14 rounded-xl text-base" />
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-end">
-              <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Photo</Label>
+              <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Visual</Label>
               <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-1">
                 <Sparkles className="h-3 w-3 mr-1" /> Nano-Banana Bridge
               </Badge>
@@ -282,7 +280,7 @@ export default function PostItem() {
                   </div>
                   <div>
                     <p className="font-bold text-slate-700">Upload photo</p>
-                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Or let Nano-Banana generate a visual for you based on the description.</p>
+                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Or let AI generate a realistic visual based on your text description.</p>
                   </div>
                 </div>
               )}

@@ -1,53 +1,64 @@
 
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth';
+import { initializeFirebase } from './init';
 
 interface FirebaseContextType {
   app: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  isInitialized: boolean;
 }
 
-const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
+const FirebaseContext = createContext<FirebaseContextType>({
+  app: null,
+  firestore: null,
+  auth: null,
+  isInitialized: false,
+});
 
-export function FirebaseProvider({
-  children,
-  app,
-  firestore,
-  auth,
-}: {
-  children: React.ReactNode;
-  app: FirebaseApp | null;
-  firestore: Firestore | null;
-  auth: Auth | null;
-}) {
+/**
+ * Robust Firebase Provider that handles hydration safely.
+ */
+export function FirebaseClientProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<FirebaseContextType>({
+    app: null,
+    firestore: null,
+    auth: null,
+    isInitialized: false,
+  });
+
+  useEffect(() => {
+    // We only initialize Firebase in the browser after the initial mount
+    const initialized = initializeFirebase();
+    setState({
+      ...initialized,
+      isInitialized: true,
+    });
+  }, []);
+
   return (
-    <FirebaseContext.Provider value={{ app, firestore, auth }}>
+    <FirebaseContext.Provider value={state}>
       {children}
     </FirebaseContext.Provider>
   );
 }
 
-export function useFirebaseApp() {
+export function useFirebase() {
   const context = useContext(FirebaseContext);
-  return context?.app ?? null;
+  return context;
 }
 
 export function useFirestore() {
   const context = useContext(FirebaseContext);
-  return context?.firestore ?? null;
+  return context.firestore;
 }
 
 export function useAuth() {
   const context = useContext(FirebaseContext);
-  return context?.auth ?? null;
-}
-
-export function useFirebase() {
-  const context = useContext(FirebaseContext);
-  return context ?? { app: null, firestore: null, auth: null };
+  return context.auth;
 }

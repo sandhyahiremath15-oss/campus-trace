@@ -30,19 +30,21 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (flowInput) => {
-    const promptText = `Task: Generate a realistic, high-quality photograph of a campus item.
+    const promptText = `Task: Generate a realistic, high-quality photograph of a specific campus item.
     
-    Item Details:
+    Item Identity:
     - Title: ${flowInput.title}
-    - Description: ${flowInput.description}
+    - Details: ${flowInput.description}
     - Category: ${flowInput.category}
     
     Requirements:
-    1. The image MUST strictly represent the item described.
-    2. The style must be a realistic photograph, taken with a smartphone.
-    3. Place the item in a natural campus environment (e.g., on a library table, grass, or bench).
-    4. NO text, hands, faces, or identifiable people.
-    5. Output must be purely the generated image.`;
+    1. The image MUST strictly represent the item described in the title and description.
+    2. Style: A realistic photograph taken with a high-resolution smartphone camera.
+    3. Setting: Place the item in a typical campus environment (e.g., a library desk, a wooden bench, or concrete pavement).
+    4. Composition: Close-up shot, centered, with natural daylight lighting.
+    5. Constraints: NO people, NO hands, NO text overlays, and NO artistic filters.
+    
+    The output should be a single clear image that matches the visual identity of the reported item.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
@@ -59,7 +61,7 @@ const generateItemImageFlow = ai.defineFlow(
     });
 
     if (!media || !media.url) {
-      throw new Error('Nano-Banana was unable to generate a visual for this specific item.');
+      throw new Error('Nano-Banana was unable to generate a visual for this specific item description.');
     }
 
     return {

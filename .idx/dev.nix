@@ -8,6 +8,7 @@
     pkgs.nodejs_20
     pkgs.zulu
      pkgs.openssh
+     pkgs.pkgs.run
   ];
   # Sets environment variables in the workspace
   env = {};

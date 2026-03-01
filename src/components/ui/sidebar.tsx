@@ -636,21 +636,17 @@ const SidebarMenuBadge = React.forwardRef<
 ))
 SidebarMenuBadge.displayName = "SidebarMenuBadge"
 
-/**
- * FIXED: Use stable initial width to prevent hydration mismatches.
- */
 const SidebarMenuSkeleton = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  const [width, setWidth] = React.useState("70%")
-
+  const [mounted, setMounted] = React.useState(false);
+  
   React.useEffect(() => {
-    // Only update once mounted to prevent hydration errors
-    setWidth(`${Math.floor(Math.random() * 40) + 50}%`)
-  }, [])
+    setMounted(true);
+  }, []);
 
   return (
     <div
@@ -668,7 +664,7 @@ const SidebarMenuSkeleton = React.forwardRef<
       <Skeleton
         className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
-        style={{ width }}
+        style={{ width: mounted ? "70%" : "65%" }}
       />
     </div>
   )
