@@ -38,21 +38,21 @@ const generateItemImageFlow = ai.defineFlow(
     outputSchema: GenerateItemImageOutputSchema,
   },
   async (input) => {
-    // Highly descriptive prompt for Nano-Banana to ensure the visual matches the text description
+    // This prompt ensures the item details "reach" Nano-Banana for accurate visualization
     const prompt = `Task: Generate a realistic, professional photograph of a lost or found campus item.
           
     ITEM TO VISUALIZE:
     - Name: ${input.title}
-    - Specific Details: ${input.description}
+    - Details: ${input.description}
     - Category: ${input.category}
     
     VISUAL REQUIREMENTS:
-    - The image MUST accurately reflect the colors, materials, and physical characteristics described in the "Specific Details".
-    - Place the item naturally in a clean campus environment (e.g., on a wooden table, in a library, or on green grass).
-    - Use natural lighting and soft focus for the background to make the item stand out.
-    - DO NOT include any text, logos, hands, or faces in the image.
-    - The style should look like a high-quality smartphone photo taken by a student.
-    - If the item is "Spectacles", show them clearly with the described frame color and style.`;
+    - The image MUST accurately reflect the colors and physical characteristics described.
+    - If the item is "Spectacles", show them clearly with the described frame color.
+    - Place the item naturally on a clean campus surface (wood table or grass).
+    - Use natural lighting and soft focus for the background.
+    - DO NOT include any text, logos, hands, or faces.
+    - Style: High-quality smartphone photo.`;
 
     const { media } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
@@ -69,7 +69,7 @@ const generateItemImageFlow = ai.defineFlow(
     });
 
     if (!media || !media.url) {
-      throw new Error('Nano-Banana was unable to generate a visual for this item at this time.');
+      throw new Error('Nano-Banana was unable to generate a visual at this time.');
     }
 
     return {

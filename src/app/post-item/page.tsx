@@ -99,11 +99,8 @@ export default function PostItem() {
         }
       } catch (err) {
         console.error("AI Generation failed:", err);
-        // We don't block submission if AI fails, just proceed without custom image
-        toast({
-          title: "Generation Notice",
-          description: "Smart visual generation was skipped. Using category placeholder.",
-        });
+        // Fallback to empty if generation fails
+        finalImageUrl = '';
       } finally {
         setIsGeneratingImage(false);
       }
@@ -124,7 +121,6 @@ export default function PostItem() {
         posterEmail: user.email || '',
       });
       setStep(2);
-      toast({ title: "Report Published", description: "Item successfully shared with the community." });
     } catch (err) {
       console.error(err);
       toast({ variant: "destructive", title: "Error", description: "Failed to publish report." });
@@ -133,17 +129,7 @@ export default function PostItem() {
     }
   };
 
-  // Prevent hydration mismatches and ensure page doesn't load until state is ready
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin h-8 w-8 text-primary/40" />
-      </div>
-    );
-  }
-
-  // Handle loading state separately after mounting to prevent flashing
-  if (authLoading) {
+  if (!mounted || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-8 w-8 text-primary/40" />
@@ -156,7 +142,7 @@ export default function PostItem() {
       <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50">
         <div className="text-center space-y-6 bg-white p-12 rounded-[40px] shadow-xl max-w-sm">
           <h2 className="text-3xl font-bold">Sign In Required</h2>
-          <p className="text-slate-500">Log in to contribute to the campus lost & found community.</p>
+          <p className="text-slate-500">Log in to contribute to the campus community.</p>
           <Button className="w-full h-14 rounded-2xl font-bold" onClick={() => router.push('/auth/login')}>Log In</Button>
         </div>
       </div>
@@ -253,7 +239,7 @@ export default function PostItem() {
             <div className="flex justify-between items-end">
               <Label className="text-sm font-black uppercase tracking-widest text-slate-400">Photo</Label>
               <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-1">
-                <Sparkles className="h-3 w-3 mr-1" /> Smart Visualization
+                <Sparkles className="h-3 w-3 mr-1" /> Nano-Banana Bridge
               </Badge>
             </div>
             
@@ -277,8 +263,8 @@ export default function PostItem() {
                     <Camera className="h-8 w-8" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-700">Upload your own photo</p>
-                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Real photos help the community find matches faster. Nano-Banana will visualize it if you don't have it.</p>
+                    <p className="font-bold text-slate-700">Upload photo</p>
+                    <p className="text-xs text-slate-400 max-w-[240px] mx-auto mt-1">Or let Nano-Banana generate a visual for you based on the description.</p>
                   </div>
                 </div>
               )}
@@ -288,13 +274,13 @@ export default function PostItem() {
 
           <Button 
             type="submit" 
-            className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20 bg-primary text-white hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+            className="w-full h-16 text-xl font-bold rounded-2xl shadow-xl shadow-primary/20 bg-primary text-white hover:bg-primary/90 transition-all" 
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="animate-spin h-6 w-6" />
-                {isGeneratingImage ? "Nano-Banana Visualizing..." : "Publishing Report..."}
+                {isGeneratingImage ? "Nano-Banana Visualizing..." : "Publishing..."}
               </span>
             ) : "Publish Report"}
           </Button>
