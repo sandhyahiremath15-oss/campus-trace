@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext } from 'react';
@@ -31,26 +32,26 @@ export function FirebaseProvider({
   );
 }
 
+/**
+ * Safer hooks that return null instead of throwing if the provider isn't ready.
+ * This prevents client-side exceptions during hydration or transition states.
+ */
 export function useFirebaseApp() {
   const context = useContext(FirebaseContext);
-  if (!context) throw new Error('useFirebaseApp must be used within a FirebaseProvider');
-  return context.app;
+  return context?.app ?? null;
 }
 
 export function useFirestore() {
   const context = useContext(FirebaseContext);
-  if (!context) throw new Error('useFirestore must be used within a FirebaseProvider');
-  return context.firestore;
+  return context?.firestore ?? null;
 }
 
 export function useAuth() {
   const context = useContext(FirebaseContext);
-  if (!context) throw new Error('useAuth must be used within a FirebaseProvider');
-  return context.auth;
+  return context?.auth ?? null;
 }
 
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (!context) throw new Error('useFirebase must be used within a FirebaseProvider');
-  return context;
+  return context ?? { app: null, firestore: null, auth: null };
 }
