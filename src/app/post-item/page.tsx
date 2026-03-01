@@ -102,7 +102,6 @@ export default function PostItem() {
         }
       } catch (err) {
         console.error("Nano-Banana failed:", err);
-        // We proceed even if AI fails, using fallback category images in display
       } finally {
         setIsGeneratingImage(false);
       }
@@ -131,11 +130,21 @@ export default function PostItem() {
     }
   };
 
-  // Hydration guard to prevent Application Error
-  if (!mounted || authLoading) {
+  if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <Loader2 className="animate-spin h-10 w-10 text-primary mx-auto" />
+          <p className="text-slate-500 font-medium">Verifying Session...</p>
+        </div>
       </div>
     );
   }

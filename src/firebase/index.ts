@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
@@ -10,6 +11,10 @@ let db: Firestore | null = null;
 let auth: Auth | null = null;
 
 export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return { app: null, db: null, auth: null };
+  }
+
   try {
     const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
 

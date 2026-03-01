@@ -15,7 +15,9 @@ class SimpleEventEmitter {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
-    this.listeners[event].push(listener);
+    if (!this.listeners[event].includes(listener)) {
+      this.listeners[event].push(listener);
+    }
   }
 
   off(event: string, listener: Listener) {
@@ -31,7 +33,7 @@ class SimpleEventEmitter {
       try {
         l(data);
       } catch (e) {
-        console.error('Error in event listener:', e);
+        // Silent error in emitter
       }
     });
   }
