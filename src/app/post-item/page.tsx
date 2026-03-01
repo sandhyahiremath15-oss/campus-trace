@@ -106,6 +106,7 @@ export default function PostItem() {
         }
       } catch (err) {
         console.error("Nano-Banana failed:", err);
+        // We continue with a placeholder if generation fails
       } finally {
         setIsGeneratingImage(false);
       }

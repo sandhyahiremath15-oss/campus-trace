@@ -1,11 +1,12 @@
 
 'use server';
 /**
- * @fileOverview A campus item visualization AI agent using Gemini 2.5 Flash Image (Nano-Banana).
+ * @fileOverview A campus item visualization AI agent using Gemini 2.5 Flash Image.
+ * Generates a realistic visual representing the lost or found item.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import {z} from 'genkit';
 
 const GenerateItemImageInputSchema = z.object({
   title: z.string().describe('The name of the item to visualize.'),
@@ -39,7 +40,7 @@ const generateItemImageFlow = ai.defineFlow(
     Requirements:
     1. The image MUST strictly represent the item described.
     2. The style must be a realistic photograph, taken with a smartphone.
-    3. Place the item in a natural campus environment focus.
+    3. Place the item in a natural campus environment (e.g., on a library table, grass, or bench).
     4. NO text, hands, faces, or identifiable people.
     5. Output must be purely the generated image.`;
 

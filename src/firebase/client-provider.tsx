@@ -19,12 +19,14 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // We only initialize Firebase in the browser after the initial mount
     const initialized = initializeFirebase();
     setFirebase(initialized);
     setMounted(true);
   }, []);
 
-  // During SSR and first client-side render, we provide nulls to maintain consistency
+  // We wrap children in the provider immediately, but context values 
+  // will only update after the initial client-side render cycle.
   return (
     <FirebaseProvider app={firebase.app} firestore={firebase.db} auth={firebase.auth}>
       {children}

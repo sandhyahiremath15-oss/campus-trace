@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, PlusCircle, LayoutDashboard, User, MapPin, LogOut, Menu } from 'lucide-react';
@@ -24,15 +26,19 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useToast } from '@/hooks/use-toast';
-import { useState, useMemo } from 'react';
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { name: 'Browse', href: '/items', icon: Search },
@@ -58,6 +64,9 @@ export function Navbar() {
     if (!user) return '?';
     return (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
   }, [user]);
+
+  // Prevent hydration mismatch by rendering a consistent shell initially
+  const showUserArea = mounted && !authLoading && user;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -91,7 +100,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
-          {user ? (
+          {showUserArea ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -173,7 +182,7 @@ export function Navbar() {
                       {item.name}
                     </Link>
                   ))}
-                  {!user && (
+                  {(!mounted || !user) && (
                     <Link
                       href="/auth/login"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -183,7 +192,7 @@ export function Navbar() {
                       Sign In
                     </Link>
                   )}
-                  {user && (
+                  {mounted && user && (
                     <button
                       onClick={() => {
                         handleSignOut();
