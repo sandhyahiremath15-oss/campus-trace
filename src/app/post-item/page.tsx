@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
+import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 
 export default function PostItem() {
   const router = useRouter();
@@ -30,6 +30,7 @@ export default function PostItem() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     type: 'lost' as 'lost' | 'found',
@@ -58,17 +59,36 @@ export default function PostItem() {
     if (!firestore || !user) return;
     
     setIsSubmitting(true);
+
+    let finalImageUrl = formData.imageUrl;
+
+    // If no image provided, generate one with AI
+    if (!finalImageUrl) {
+      setIsGeneratingImage(true);
+      try {
+        const result = await generateItemImage({
+          title: formData.title,
+          description: formData.description,
+        });
+        finalImageUrl = result.imageUrl;
+      } catch (err) {
+        console.error("AI Image Generation failed:", err);
+        // Fallback: we'll just continue without an image, or use static placeholders as before
+      } finally {
+        setIsGeneratingImage(false);
+      }
+    }
+
     const itemData = {
       title: formData.title,
       description: formData.description,
       category: formData.category,
       type: formData.type,
       location: formData.location,
-      imageUrl: formData.imageUrl,
+      imageUrl: finalImageUrl,
       userId: user.uid,
       status: 'open',
       createdAt: serverTimestamp(),
-      // Adding these for display convenience on details page
       posterName: user.displayName || 'Campus User',
       posterEmail: user.email || '',
     };
@@ -84,31 +104,34 @@ export default function PostItem() {
     }
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  
   if (!user) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background">
-      <div className="text-center space-y-4 bg-white p-8 rounded-2xl border shadow-sm max-w-sm">
-        <h2 className="text-2xl font-black font-headline text-primary">Sign In Required</h2>
-        <p className="text-muted-foreground">You need to be logged in to report a lost or found item.</p>
-        <Button className="w-full" onClick={() => router.push('/auth/login')}>Log In Now</Button>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#F8FAFC]">
+      <div className="text-center space-y-6 bg-white p-12 rounded-[40px] border shadow-xl max-w-sm">
+        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sign In Required</h2>
+        <p className="text-slate-500 font-medium">You need to be logged in to report a lost or found item.</p>
+        <Button className="w-full h-14 rounded-2xl font-bold text-lg" onClick={() => router.push('/auth/login')}>Log In Now</Button>
       </div>
     </div>
   );
 
   if (step === 2) {
     return (
-      <div className="min-h-screen flex flex-col bg-background font-body">
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-6 animate-in zoom-in-95 duration-500">
-            <div className="w-20 h-20 bg-accent/20 rounded-full flex items-center justify-center mx-auto text-accent">
+          <div className="max-w-md w-full text-center space-y-8 animate-in zoom-in-95 duration-500">
+            <div className="w-24 h-24 bg-emerald-500 text-white rounded-[32px] flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/20">
               <CheckCircle2 className="h-12 w-12" />
             </div>
-            <h1 className="text-4xl font-black font-headline text-primary">Report Published!</h1>
-            <p className="text-muted-foreground text-lg">Your report is now live. We'll scan for potential matches using AI.</p>
-            <div className="flex flex-col gap-3">
-              <Button onClick={() => router.push('/items')} size="lg" className="h-12">Browse All Listings</Button>
-              <Button variant="ghost" onClick={() => router.push('/dashboard')}>Go to My Dashboard</Button>
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Report Published!</h1>
+              <p className="text-slate-500 text-lg font-medium">Your report is now live. We'll scan for potential matches using smart technology.</p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">Browse All Listings</Button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold text-slate-500">Go to My Dashboard</Button>
             </div>
           </div>
         </main>
@@ -117,61 +140,58 @@ export default function PostItem() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-body">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-body">
       <Navbar />
-      <main className="container mx-auto px-4 py-12 max-w-2xl">
-        <h1 className="text-4xl font-black font-headline text-primary text-center mb-8">Report an Item</h1>
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border shadow-sm space-y-6">
-          <div className="space-y-3">
-            <Label className="text-lg font-bold">What happened?</Label>
+      <main className="container mx-auto px-4 py-16 max-w-3xl">
+        <div className="text-center space-y-2 mb-12">
+          <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Report an Item</h1>
+          <p className="text-slate-500 text-lg font-medium">Provide as much detail as possible to help the community.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] border border-slate-200/60 shadow-2xl shadow-slate-200/50 space-y-10">
+          <div className="space-y-4">
+            <Label className="text-lg font-bold text-slate-900">What happened?</Label>
             <RadioGroup 
               defaultValue="lost" 
               className="grid grid-cols-2 gap-4" 
               onValueChange={(val) => setFormData({...formData, type: val as 'lost' | 'found'})}
             >
-              <div className="flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
-                <RadioGroupItem value="lost" id="lost" />
-                <Label htmlFor="lost" className="cursor-pointer font-bold">I lost something</Label>
+              <div className={cn(
+                "flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all",
+                formData.type === 'lost' ? "border-primary bg-primary/5" : "border-slate-100 hover:border-slate-200"
+              )}>
+                <RadioGroupItem value="lost" id="lost" className="h-5 w-5" />
+                <Label htmlFor="lost" className="cursor-pointer font-bold text-base text-slate-700">I lost something</Label>
               </div>
-              <div className="flex items-center space-x-2 border p-4 rounded-xl cursor-pointer hover:bg-muted/30 transition-colors">
-                <RadioGroupItem value="found" id="found" />
-                <Label htmlFor="found" className="cursor-pointer font-bold">I found something</Label>
+              <div className={cn(
+                "flex items-center space-x-3 border-2 p-5 rounded-2xl cursor-pointer transition-all",
+                formData.type === 'found' ? "border-emerald-500 bg-emerald-50" : "border-slate-100 hover:border-slate-200"
+              )}>
+                <RadioGroupItem value="found" id="found" className="h-5 w-5" />
+                <Label htmlFor="found" className="cursor-pointer font-bold text-base text-slate-700">I found something</Label>
               </div>
             </RadioGroup>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Item Title</Label>
-            <Input 
-              id="title" 
-              placeholder="E.g., Blue Hydro Flask Water Bottle" 
-              required 
-              value={formData.title} 
-              onChange={(e) => setFormData({...formData, title: e.target.value})} 
-              className="h-12"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Detailed Description</Label>
-            <Textarea 
-              id="description" 
-              placeholder="Mention any unique marks, brand names, colors, or identifying features..." 
-              required 
-              value={formData.description} 
-              onChange={(e) => setFormData({...formData, description: e.target.value})} 
-              className="min-h-[120px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Category</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <Label htmlFor="title" className="font-bold text-slate-700">Item Title</Label>
+              <Input 
+                id="title" 
+                placeholder="E.g., Blue Hydro Flask" 
+                required 
+                value={formData.title} 
+                onChange={(e) => setFormData({...formData, title: e.target.value})} 
+                className="h-14 rounded-xl border-slate-200 focus:ring-primary/10"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label className="font-bold text-slate-700">Category</Label>
               <Select required onValueChange={(val) => setFormData({...formData, category: val})}>
-                <SelectTrigger className="h-12">
+                <SelectTrigger className="h-14 rounded-xl border-slate-200">
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="electronics">Electronics</SelectItem>
                   <SelectItem value="apparel">Apparel</SelectItem>
                   <SelectItem value="keys">Keys</SelectItem>
@@ -181,45 +201,76 @@ export default function PostItem() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Location</Label>
-              <Input 
-                placeholder="E.g., Library 2nd floor silent area" 
-                required 
-                value={formData.location} 
-                onChange={(e) => setFormData({...formData, location: e.target.value})} 
-                className="h-12"
-              />
-            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Photo (Optional)</Label>
-            <div 
-              onClick={() => fileInputRef.current?.click()} 
-              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/50 transition-all flex flex-col items-center gap-2 group"
-            >
-              {formData.imageUrl ? (
-                <div className="relative aspect-video w-full max-w-[300px] border rounded-lg overflow-hidden">
-                  <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" />
-                </div>
-              ) : (
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                  <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+          <div className="space-y-3">
+            <Label htmlFor="description" className="font-bold text-slate-700">Detailed Description</Label>
+            <Textarea 
+              id="description" 
+              placeholder="Mention any unique marks, brand names, colors, or identifying features..." 
+              required 
+              value={formData.description} 
+              onChange={(e) => setFormData({...formData, description: e.target.value})} 
+              className="min-h-[140px] rounded-xl border-slate-200 p-4 leading-relaxed"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label className="font-bold text-slate-700">Location</Label>
+            <Input 
+              placeholder="E.g., Library 2nd floor silent area" 
+              required 
+              value={formData.location} 
+              onChange={(e) => setFormData({...formData, location: e.target.value})} 
+              className="h-14 rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="font-bold text-slate-700">Photo</Label>
+              {!formData.imageUrl && (
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full">
+                  <Sparkles className="h-3 w-3" />
+                  Auto-Gen if empty
                 </div>
               )}
-              <p className="text-sm font-medium text-muted-foreground">
-                {formData.imageUrl ? 'Click to change photo' : 'Click to upload a photo of the item'}
-              </p>
-              <p className="text-xs text-muted-foreground/60">Max size 10MB. JPEG, PNG supported.</p>
+            </div>
+            <div 
+              onClick={() => fileInputRef.current?.click()} 
+              className="border-3 border-dashed border-slate-100 rounded-[32px] p-12 text-center cursor-pointer hover:bg-slate-50 transition-all flex flex-col items-center gap-4 group"
+            >
+              {formData.imageUrl ? (
+                <div className="relative aspect-video w-full max-w-[400px] rounded-2xl overflow-hidden shadow-2xl">
+                  <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <p className="text-white font-bold">Change Photo</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="h-16 w-16 rounded-[20px] bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Camera className="h-8 w-8 text-slate-300 group-hover:text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-slate-600">
+                      Upload your own photo
+                    </p>
+                    <p className="text-sm text-slate-400 font-medium max-w-[240px] mx-auto">
+                      Real photos help others identify items 10x faster. We'll generate one if you don't have it.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
           </div>
 
-          <Button type="submit" className="w-full h-14 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20" disabled={isSubmitting}>
+          <Button type="submit" className="w-full h-16 text-xl font-bold bg-primary text-white rounded-2xl shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all" disabled={isSubmitting}>
             {isSubmitting ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" /> Publishing Report...
+              <span className="flex items-center gap-3">
+                <Loader2 className="h-6 w-6 animate-spin" /> 
+                {isGeneratingImage ? "Generating Smart Image..." : "Publishing Report..."}
               </span>
             ) : 'Publish Report'}
           </Button>
