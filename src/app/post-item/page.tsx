@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useFirebase } from '@/firebase';
+import { useFirestore, useUser, useFirebase, useAuth } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 import Image from 'next/image';
 import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,7 @@ export default function PostItem() {
   const { toast } = useToast();
   const { isInitialized } = useFirebase();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user, loading: authLoading } = useUser();
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,11 +107,11 @@ export default function PostItem() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!firestore || !user) {
+    if (!firestore) {
       toast({
         variant: "destructive",
-        title: "Session Required",
-        description: "Please sign in to publish a report.",
+        title: "Database Error",
+        description: "Firestore is not initialized.",
       });
       return;
     }
@@ -122,6 +124,14 @@ export default function PostItem() {
     setIsSubmitting(true);
 
     try {
+      let finalUser = user;
+      
+      // If no user is logged in, attempt a quick anonymous sign-in to satisfy security rules
+      if (!finalUser && auth) {
+        const result = await signInAnonymously(auth);
+        finalUser = result.user;
+      }
+
       await addDoc(collection(firestore, 'items'), {
         title: formData.title,
         description: formData.description,
@@ -129,11 +139,11 @@ export default function PostItem() {
         type: formData.type,
         location: formData.location,
         imageUrl: formData.imageUrl || '',
-        userId: user.uid,
+        userId: finalUser?.uid || 'anonymous_guest',
         status: 'open',
         createdAt: serverTimestamp(),
-        posterName: user.displayName || 'Campus User',
-        posterEmail: user.email || '',
+        posterName: finalUser?.displayName || 'Guest User',
+        posterEmail: finalUser?.email || 'anonymous@campustrace.local',
       });
       
       setStep(2);
@@ -157,21 +167,6 @@ export default function PostItem() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col bg-slate-50">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-6 bg-white p-12 rounded-[40px] shadow-xl max-w-sm border border-slate-100">
-            <h2 className="text-3xl font-bold">Sign In Required</h2>
-            <p className="text-slate-500 font-medium">You must be logged in to contribute to the campus feed.</p>
-            <Button className="w-full h-14 rounded-2xl font-bold" onClick={() => router.push('/auth/login')}>Log In</Button>
-          </div>
-        </main>
       </div>
     );
   }
