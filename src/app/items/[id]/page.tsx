@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Navbar } from '@/components/navbar';
-import { MapPin, User, ChevronLeft, Loader2, Info, CheckCircle2, ImageOff } from 'lucide-react';
+import { MapPin, User, ChevronLeft, Loader2, Info, CheckCircle2, ImageOff, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AIMatches } from '@/components/ai-matches';
@@ -41,7 +40,7 @@ export default function ItemDetail() {
       await updateDoc(docRef, { status: 'closed' });
       toast({
         title: "Item Resolved!",
-        description: "Your report has been marked as resolved and moved to your history.",
+        description: "Your report has been marked as resolved.",
       });
     } catch (error) {
       console.error("Error resolving item:", error);
@@ -56,15 +55,17 @@ export default function ItemDetail() {
   };
 
   const displayImage = useMemo(() => {
+    // If we have a user/AI image and it hasn't errored yet, use it
     if (item?.imageUrl && item.imageUrl.trim() !== "" && !imgError) {
       return item.imageUrl;
     }
+    // Fallback to category placeholder
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
-    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://picsum.photos/seed/campus/800/600';
+    return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1080&auto=format&fit=crop';
   }, [item?.imageUrl, item?.category, imgError]);
 
   const imageHint = useMemo(() => {
-    if (item?.imageUrl && item.imageUrl.trim() !== "") return "user reported item";
+    if (item?.imageUrl && item.imageUrl.trim() !== "") return "reported item";
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageHint || "campus item";
   }, [item?.imageUrl, item?.category]);
@@ -79,10 +80,10 @@ export default function ItemDetail() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-3xl font-black font-headline text-primary mb-4">Report Not Found</h1>
-        <p className="text-muted-foreground mb-8">The item you're looking for might have been removed or moved.</p>
+        <h1 className="text-3xl font-black text-primary mb-4">Report Not Found</h1>
+        <p className="text-muted-foreground mb-8">This item may have been removed or resolved.</p>
         <Link href="/items">
-          <Button size="lg">Back to Browse</Button>
+          <Button size="lg">Back to Feed</Button>
         </Link>
       </div>
     </div>
@@ -102,24 +103,17 @@ export default function ItemDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border shadow-xl bg-slate-50 group flex items-center justify-center">
-            {imgError ? (
-              <div className="flex flex-col items-center gap-2 text-slate-300">
-                <ImageOff className="h-16 w-16" />
-                <span className="text-sm font-bold uppercase tracking-widest">Image unavailable</span>
-              </div>
-            ) : (
-              <Image 
-                src={displayImage} 
-                alt={item.title || 'Campus Item'} 
-                fill 
-                className="object-cover" 
-                data-ai-hint={imageHint}
-                onError={() => setImgError(true)}
-                unoptimized={displayImage.startsWith('data:')}
-              />
-            )}
-            <Badge className={cn("absolute left-6 top-6 px-6 py-2 shadow-2xl text-lg font-black uppercase tracking-widest", isLost ? "bg-red-500" : "bg-accent text-accent-foreground")}>
+          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden border shadow-xl bg-slate-50 flex items-center justify-center">
+            <Image 
+              src={displayImage} 
+              alt={item.title || 'Campus Item'} 
+              fill 
+              className="object-cover" 
+              data-ai-hint={imageHint}
+              onError={() => setImgError(true)}
+              unoptimized={displayImage.startsWith('data:')}
+            />
+            <Badge className={cn("absolute left-6 top-6 px-6 py-2 shadow-2xl text-lg font-black uppercase tracking-widest", isLost ? "bg-red-500" : "bg-emerald-500 text-white")}>
               {item.type}
             </Badge>
           </div>
@@ -132,7 +126,7 @@ export default function ItemDetail() {
                   {item.status}
                 </Badge>
               </div>
-              <h1 className="text-5xl font-black font-headline text-primary leading-tight break-words">{item.title || 'Untitled Report'}</h1>
+              <h1 className="text-5xl font-black text-slate-900 leading-tight break-words">{item.title || 'Untitled Report'}</h1>
               <div className="flex items-center gap-2 text-muted-foreground text-lg">
                 <MapPin className="h-5 w-5 text-accent" />
                 {item.location}
@@ -140,17 +134,17 @@ export default function ItemDetail() {
             </div>
 
             <div className="bg-white p-8 rounded-3xl border shadow-sm space-y-4">
-              <h3 className="text-xl font-black font-headline text-primary flex items-center gap-2">
+              <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
                 <Info className="h-5 w-5 text-accent" /> 
                 Report Description
               </h3>
-              <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap italic">
+              <p className="text-slate-500 text-lg leading-relaxed whitespace-pre-wrap italic">
                 "{item.description}"
               </p>
             </div>
 
             <div className="bg-white p-8 rounded-3xl border shadow-sm space-y-6">
-              <h3 className="text-xl font-black font-headline text-primary">
+              <h3 className="text-xl font-black text-slate-900">
                 {isOwner ? "Manage Your Report" : "Contact Reporter"}
               </h3>
               
@@ -167,7 +161,7 @@ export default function ItemDetail() {
                     </Button>
                   ) : (
                     <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center text-emerald-700 font-bold">
-                      This report has been successfully resolved.
+                      Report Resolved Successfully
                     </div>
                   )}
                   <Button variant="outline" className="w-full h-14 text-lg font-bold rounded-2xl" disabled>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -44,7 +43,6 @@ export default function PostItem() {
     imageUrl: '',
   });
 
-  // Ensure client-side rendering only for hydrated components
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -74,10 +72,9 @@ export default function PostItem() {
     }
     
     setIsSubmitting(true);
-
     let finalImageUrl = formData.imageUrl;
 
-    // If no image provided, generate one with AI based on description
+    // Auto-generate image if none provided
     if (!finalImageUrl) {
       setIsGeneratingImage(true);
       try {
@@ -90,7 +87,10 @@ export default function PostItem() {
         }
       } catch (err) {
         console.error("AI Image Generation failed:", err);
-        // We continue even if generation fails, the UI will use fallback
+        toast({
+          title: "Image Generation Note",
+          description: "We couldn't generate a custom photo, but your report will still be published with a category placeholder.",
+        });
       } finally {
         setIsGeneratingImage(false);
       }
@@ -112,12 +112,12 @@ export default function PostItem() {
 
     try {
       await addDoc(collection(firestore, 'items'), itemData);
-      setIsSubmitting(false);
       setStep(2);
     } catch (err) {
       console.error(err);
-      setIsSubmitting(false);
       toast({ variant: "destructive", title: "Error", description: "Failed to publish report. Please check your connection." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -125,7 +125,6 @@ export default function PostItem() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
         <Loader2 className="animate-spin h-10 w-10 text-primary/40" />
-        <p className="mt-4 text-slate-400 font-medium">Initializing reporting center...</p>
       </div>
     );
   }
@@ -138,7 +137,7 @@ export default function PostItem() {
             <AlertCircle className="h-8 w-8" />
           </div>
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sign In Required</h2>
-          <p className="text-slate-500 font-medium">You need to be logged in to report a lost or found item to the community.</p>
+          <p className="text-slate-500 font-medium">You need to be logged in to report a lost or found item.</p>
           <Button className="w-full h-14 rounded-2xl font-bold text-lg" onClick={() => router.push('/auth/login')}>Log In Now</Button>
         </div>
       </div>
@@ -156,11 +155,11 @@ export default function PostItem() {
             </div>
             <div className="space-y-2">
               <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Report Published!</h1>
-              <p className="text-slate-500 text-lg font-medium">Your report is now live. We'll scan for potential matches using community data.</p>
+              <p className="text-slate-500 text-lg font-medium">Your report is now live. Smart matching is scanning for potential connections.</p>
             </div>
             <div className="flex flex-col gap-3 pt-4">
-              <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">Browse All Listings</Button>
-              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold text-slate-500">Go to My Dashboard</Button>
+              <Button onClick={() => router.push('/items')} size="lg" className="h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">Browse Feed</Button>
+              <Button variant="ghost" onClick={() => router.push('/dashboard')} className="h-14 rounded-2xl font-bold text-slate-500">My Dashboard</Button>
             </div>
           </div>
         </main>
@@ -174,7 +173,7 @@ export default function PostItem() {
       <main className="container mx-auto px-4 py-16 max-w-3xl">
         <div className="text-center space-y-2 mb-12">
           <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Report an Item</h1>
-          <p className="text-slate-500 text-lg font-medium">Provide details to help others identify your item.</p>
+          <p className="text-slate-500 text-lg font-medium">Help the community identify your item.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[40px] border border-slate-200/60 shadow-2xl shadow-slate-200/50 space-y-10">
@@ -207,11 +206,11 @@ export default function PostItem() {
               <Label htmlFor="title" className="font-bold text-slate-700">Item Title</Label>
               <Input 
                 id="title" 
-                placeholder="E.g., Blue Hydro Flask" 
+                placeholder="E.g., Blue Spectacles" 
                 required 
                 value={formData.title} 
                 onChange={(e) => setFormData({...formData, title: e.target.value})} 
-                className="h-14 rounded-xl border-slate-200 focus:ring-primary/10"
+                className="h-14 rounded-xl border-slate-200"
               />
             </div>
             <div className="space-y-3">
@@ -236,18 +235,18 @@ export default function PostItem() {
             <Label htmlFor="description" className="font-bold text-slate-700">Detailed Description</Label>
             <Textarea 
               id="description" 
-              placeholder="Color, brand, unique markings (e.g., 'Black round frame spectacles with a small scratch on the left lens')" 
+              placeholder="Provide colors, brands, or unique marks..." 
               required 
               value={formData.description} 
               onChange={(e) => setFormData({...formData, description: e.target.value})} 
-              className="min-h-[140px] rounded-xl border-slate-200 p-4 leading-relaxed"
+              className="min-h-[140px] rounded-xl border-slate-200 p-4"
             />
           </div>
 
           <div className="space-y-3">
             <Label className="font-bold text-slate-700">Location</Label>
             <Input 
-              placeholder="E.g., Student Union second floor" 
+              placeholder="E.g., Library 3rd floor" 
               required 
               value={formData.location} 
               onChange={(e) => setFormData({...formData, location: e.target.value})} 
@@ -261,7 +260,7 @@ export default function PostItem() {
               {!formData.imageUrl && (
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full">
                   <Sparkles className="h-3 w-3" />
-                  Auto-Gen if empty
+                  Smart Gen Enabled
                 </div>
               )}
             </div>
@@ -272,9 +271,6 @@ export default function PostItem() {
               {formData.imageUrl ? (
                 <div className="relative aspect-video w-full max-w-[400px] rounded-2xl overflow-hidden shadow-2xl">
                   <Image src={formData.imageUrl} fill className="object-cover" alt="Preview" unoptimized />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <p className="text-white font-bold">Change Photo</p>
-                  </div>
                 </div>
               ) : (
                 <>
@@ -282,12 +278,8 @@ export default function PostItem() {
                     <Camera className="h-8 w-8 text-slate-300 group-hover:text-primary" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-base font-bold text-slate-600">
-                      Upload your own photo
-                    </p>
-                    <p className="text-sm text-slate-400 font-medium max-w-[240px] mx-auto">
-                      Real photos help the community find matches faster. We'll generate a realistic one if you don't have it.
-                    </p>
+                    <p className="text-base font-bold text-slate-600">Upload a Photo</p>
+                    <p className="text-sm text-slate-400 font-medium">Or let Smart Gen build a realistic photo for you.</p>
                   </div>
                 </>
               )}
@@ -299,7 +291,7 @@ export default function PostItem() {
             {isSubmitting ? (
               <span className="flex items-center gap-3">
                 <Loader2 className="h-6 w-6 animate-spin" /> 
-                {isGeneratingImage ? "Generating Detailed Image..." : "Publishing Report..."}
+                {isGeneratingImage ? "Smart Gen Creating Photo..." : "Publishing Report..."}
               </span>
             ) : 'Publish Report'}
           </Button>

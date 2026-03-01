@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow for generating a realistic image 
- * of a lost or found item based on its specific description using Gemini 2.5 Flash Image.
+ * of a lost or found item based on its specific description using Gemini 2.5 Flash Image (Nano-Banana).
  */
 
 import {ai} from '@/ai/genkit';
@@ -32,28 +32,32 @@ const generateItemImageFlow = ai.defineFlow(
     // Using Gemini 2.5 Flash Image (Nano-Banana) for generation
     const response = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image',
-      prompt: `Generate a single, professional, high-resolution product photograph of a lost or found campus item.
+      prompt: `Task: Generate a professional, high-resolution product photograph of the following campus item.
       
-      ITEM: ${input.title}
-      DESCRIPTION: ${input.description}
+      ITEM TITLE: ${input.title}
+      ITEM DESCRIPTION: ${input.description}
       
-      VISUAL RULES:
-      - The image MUST strictly show the item described.
-      - The item must be centered and in clear focus.
-      - Background: A clean, neutral, blurred campus setting (library desk or stone bench).
-      - Lighting: Bright, natural, professional.
-      - No people, no text, no watermarks.`,
+      STYLE REQUIREMENTS:
+      - The item must be the sole focus, perfectly centered.
+      - Realistic lighting and textures.
+      - Background: A slightly blurred, neutral campus setting like a university library shelf, a wooden desk, or a stone courtyard bench.
+      - NO text, NO watermarks, NO people.
+      - The image should look like a clear photo taken with a smartphone.`,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
 
-    if (!response.media || !response.media.url) {
-      throw new Error('Failed to generate accurate item image');
+    // Extract the media part from the response
+    const imagePart = response.message?.content.find(part => !!part.media);
+    
+    if (!imagePart || !imagePart.media || !imagePart.media.url) {
+      // Fallback if the specific image model fails (sometimes due to modality constraints)
+      throw new Error('AI generation failed to produce a valid image part.');
     }
 
     return {
-      imageUrl: response.media.url,
+      imageUrl: imagePart.media.url,
     };
   }
 );
