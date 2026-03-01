@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -99,7 +100,6 @@ export default function PostItem() {
           }
         } catch (err) {
           console.error("AI Visualization failed:", err);
-          // If AI fails, we still continue with a placeholder or no image
         } finally {
           setIsGeneratingImage(false);
         }
@@ -136,7 +136,6 @@ export default function PostItem() {
     }
   };
 
-  // Prevent ANY rendering until we are hydrated and Firebase is ready
   if (!mounted || !isInitialized || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">

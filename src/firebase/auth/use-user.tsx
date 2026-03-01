@@ -7,6 +7,7 @@ import { useAuth } from '../provider';
 
 /**
  * @fileOverview A hydration-safe hook to access the current Firebase user.
+ * Fixed: Now sets loading to false even if auth is unavailable to prevent page hangs.
  */
 export function useUser() {
   const auth = useAuth();
@@ -14,8 +15,10 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only set up the listener if auth is available (client-side)
+    // If auth is not available (e.g. missing config), we must set loading to false
+    // so that consuming components can proceed to fallback states.
     if (!auth) {
+      setLoading(false);
       return;
     }
 

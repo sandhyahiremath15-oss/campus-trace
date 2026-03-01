@@ -1,3 +1,4 @@
+
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
@@ -15,8 +16,17 @@ export function initializeFirebase() {
   }
 
   try {
-    // Check if we have at least the minimum required config
-    const isConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+    // Sanitize and validate config
+    const config = {
+      apiKey: firebaseConfig.apiKey?.trim(),
+      authDomain: firebaseConfig.authDomain?.trim(),
+      projectId: firebaseConfig.projectId?.trim(),
+      storageBucket: firebaseConfig.storageBucket?.trim(),
+      messagingSenderId: firebaseConfig.messagingSenderId?.trim(),
+      appId: firebaseConfig.appId?.trim()
+    };
+
+    const isConfigValid = !!config.apiKey && !!config.projectId;
 
     if (!isConfigValid) {
       console.warn('Firebase configuration is incomplete. Authentication and database features may be disabled.');
@@ -27,10 +37,8 @@ export function initializeFirebase() {
     const existingApps = getApps();
     
     if (existingApps.length === 0) {
-      // Standard initialization
-      app = initializeApp(firebaseConfig);
+      app = initializeApp(config);
     } else {
-      // Use existing app to prevent double initialization errors
       app = getApp();
     }
 
