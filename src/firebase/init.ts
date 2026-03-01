@@ -1,16 +1,16 @@
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 /**
  * Initializes Firebase in a browser-safe way.
- * Prevents double initialization and handles missing configuration gracefully.
+ * Hardened to prevent client-side exceptions during hydration.
  */
 export function initializeFirebase() {
-  // Never run on server
+  // Return empty objects for server-side rendering
   if (typeof window === 'undefined') {
     return { app: null, firestore: null, auth: null };
   }
@@ -25,11 +25,10 @@ export function initializeFirebase() {
       appId: firebaseConfig.appId?.trim()
     };
 
-    const isConfigValid = !!config.apiKey && !!config.projectId;
-
-    if (!isConfigValid) {
-      console.warn('CampusTrace: Firebase configuration is missing or incomplete. Check environment variables.');
-      return { app: null, firestore: null, auth: null };
+    // We check for minimal config but don't hard-fail here to prevent app crash
+    const isConfigAvailable = !!config.apiKey && !!config.projectId;
+    if (!isConfigAvailable) {
+      console.warn('CampusTrace: Firebase config is missing. Ensure environment variables are set in Vercel.');
     }
 
     let app: FirebaseApp;
@@ -41,11 +40,10 @@ export function initializeFirebase() {
       app = getApp();
     }
 
-    return { 
-      app, 
-      firestore: getFirestore(app), 
-      auth: getAuth(app) 
-    };
+    const firestore = getFirestore(app);
+    const auth = getAuth(app);
+
+    return { app, firestore, auth };
   } catch (error) {
     console.error('CampusTrace: Firebase initialization failed:', error);
     return { app: null, firestore: null, auth: null };
