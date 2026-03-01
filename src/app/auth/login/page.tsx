@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -45,8 +44,8 @@ export default function Login() {
     if (!auth) {
       toast({
         variant: "destructive",
-        title: "Auth Unavailable",
-        description: "Firebase config is missing. Check environment variables.",
+        title: "Configuration Error",
+        description: "Firebase authentication is not configured properly. Check your environment variables.",
       });
       return;
     }
@@ -82,7 +81,7 @@ export default function Login() {
       
       let description = error.message || "Could not sign in with Google.";
       if (error.code === 'auth/unauthorized-domain') {
-        description = "This domain is not authorized. Please add " + window.location.hostname + " to 'Authorized Domains' in the Firebase Console.";
+        description = "This domain is not authorized. Please add " + window.location.hostname + " to the 'Authorized Domains' list in the Firebase Console (Authentication > Settings).";
       }
 
       toast({

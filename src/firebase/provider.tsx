@@ -11,6 +11,7 @@ interface FirebaseContextType {
   firestore: Firestore | null;
   auth: Auth | null;
   isInitialized: boolean;
+  mounted: boolean;
 }
 
 const FirebaseContext = createContext<FirebaseContextType>({
@@ -18,6 +19,7 @@ const FirebaseContext = createContext<FirebaseContextType>({
   firestore: null,
   auth: null,
   isInitialized: false,
+  mounted: false,
 });
 
 /**
@@ -30,6 +32,7 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     firestore: null,
     auth: null,
     isInitialized: false,
+    mounted: false,
   });
 
   useEffect(() => {
@@ -38,9 +41,12 @@ export function FirebaseClientProvider({ children }: { children: React.ReactNode
     setState({
       ...initialized,
       isInitialized: true,
+      mounted: true,
     });
   }, []);
 
+  // To prevent "Application Error" during hydration, we can choose to render 
+  // a shell or simply provide the null context until mounted.
   return (
     <FirebaseContext.Provider value={state}>
       {children}

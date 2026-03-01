@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -25,6 +24,9 @@ import { generateItemImage } from '@/ai/flows/generate-item-image-flow';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
+/**
+ * @fileOverview Hardened PostItem page to resolve "Application Error" and responsiveness issues.
+ */
 export default function PostItem() {
   const router = useRouter();
   const { toast } = useToast();
@@ -89,6 +91,7 @@ export default function PostItem() {
       if (!finalImageUrl) {
         setIsGeneratingImage(true);
         try {
+          // Nano-Banana: Reaching for item details to generate a realistic visual
           const result = await generateItemImage({
             title: formData.title,
             description: formData.description,
@@ -100,6 +103,7 @@ export default function PostItem() {
           }
         } catch (err) {
           console.error("AI Visualization failed:", err);
+          // Fallback handled by silence (user image remains empty/fallback)
         } finally {
           setIsGeneratingImage(false);
         }
@@ -136,6 +140,7 @@ export default function PostItem() {
     }
   };
 
+  // HYDRATION GUARD: Prevents "Application Error" during initial render
   if (!mounted || !isInitialized || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">

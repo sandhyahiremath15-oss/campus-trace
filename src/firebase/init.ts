@@ -1,4 +1,3 @@
-
 'use client';
 
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
@@ -11,25 +10,28 @@ import { firebaseConfig } from './config';
  * Prevents double initialization and handles missing configuration gracefully.
  */
 export function initializeFirebase() {
+  // Never run on server
   if (typeof window === 'undefined') {
     return { app: null, db: null, auth: null };
   }
 
   try {
-    // Sanitize and validate config
+    // Sanitize and validate config values safely
+    const safeTrim = (val: any) => (typeof val === 'string' ? val.trim() : '');
+    
     const config = {
-      apiKey: firebaseConfig.apiKey?.trim(),
-      authDomain: firebaseConfig.authDomain?.trim(),
-      projectId: firebaseConfig.projectId?.trim(),
-      storageBucket: firebaseConfig.storageBucket?.trim(),
-      messagingSenderId: firebaseConfig.messagingSenderId?.trim(),
-      appId: firebaseConfig.appId?.trim()
+      apiKey: safeTrim(firebaseConfig.apiKey),
+      authDomain: safeTrim(firebaseConfig.authDomain),
+      projectId: safeTrim(firebaseConfig.projectId),
+      storageBucket: safeTrim(firebaseConfig.storageBucket),
+      messagingSenderId: safeTrim(firebaseConfig.messagingSenderId),
+      appId: safeTrim(firebaseConfig.appId)
     };
 
     const isConfigValid = !!config.apiKey && !!config.projectId;
 
     if (!isConfigValid) {
-      console.warn('Firebase configuration is incomplete. Authentication and database features may be disabled.');
+      console.warn('CampusTrace: Firebase configuration is missing or incomplete. Some features will be disabled.');
       return { app: null, db: null, auth: null };
     }
 
@@ -48,7 +50,7 @@ export function initializeFirebase() {
       auth: getAuth(app) 
     };
   } catch (error) {
-    console.error('Firebase initialization error:', error);
+    console.error('CampusTrace: Firebase initialization failed:', error);
     return { app: null, db: null, auth: null };
   }
 }
