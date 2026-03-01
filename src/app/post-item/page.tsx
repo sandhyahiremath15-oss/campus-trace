@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -25,7 +26,8 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 /**
- * @fileOverview Hardened PostItem page to resolve "Application Error" and responsiveness issues.
+ * @fileOverview Hardened PostItem page.
+ * Resolved: "Badge is not defined" ReferenceError causing client-side crash.
  */
 export default function PostItem() {
   const router = useRouter();
@@ -87,11 +89,9 @@ export default function PostItem() {
     let finalImageUrl = formData.imageUrl;
 
     try {
-      // Trigger AI visual generation if no photo provided
       if (!finalImageUrl) {
         setIsGeneratingImage(true);
         try {
-          // Nano-Banana: Reaching for item details to generate a realistic visual
           const result = await generateItemImage({
             title: formData.title,
             description: formData.description,
@@ -103,7 +103,6 @@ export default function PostItem() {
           }
         } catch (err) {
           console.error("AI Visualization failed:", err);
-          // Fallback handled by silence (user image remains empty/fallback)
         } finally {
           setIsGeneratingImage(false);
         }
@@ -140,7 +139,6 @@ export default function PostItem() {
     }
   };
 
-  // HYDRATION GUARD: Prevents "Application Error" during initial render
   if (!mounted || !isInitialized || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
