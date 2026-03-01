@@ -85,9 +85,12 @@ export default function PostItem() {
           title: formData.title,
           description: formData.description,
         });
-        finalImageUrl = result.imageUrl;
+        if (result && result.imageUrl) {
+          finalImageUrl = result.imageUrl;
+        }
       } catch (err) {
         console.error("AI Image Generation failed:", err);
+        // We continue even if generation fails, the UI will use fallback
       } finally {
         setIsGeneratingImage(false);
       }

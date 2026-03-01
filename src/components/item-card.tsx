@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Calendar, Tag, ChevronRight, Heart, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, Tag, ChevronRight, Heart, Loader2, ImageOff } from 'lucide-react';
 import { CampusItem } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -97,13 +98,17 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   }, [mounted, item?.createdAt]);
 
   const displayImage = useMemo(() => {
-    if (item?.imageUrl && !imgError) return item.imageUrl;
+    // If we have an image and no error, use it.
+    if (item?.imageUrl && item.imageUrl.trim() !== "" && !imgError) {
+      return item.imageUrl;
+    }
+    // Fallback to category placeholder if image is missing or errored
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageUrl || PlaceHolderImages.find(p => p.id === 'other')?.imageUrl || `https://picsum.photos/seed/${item?.id || 'campus'}/600/400`;
   }, [item?.imageUrl, item?.category, item?.id, imgError]);
 
   const imageHint = useMemo(() => {
-    if (item?.imageUrl) return "user uploaded item";
+    if (item?.imageUrl && item.imageUrl.trim() !== "") return "user reported item";
     const categoryPlaceholder = PlaceHolderImages.find(p => p.id === item?.category);
     return categoryPlaceholder?.imageHint || "campus item";
   }, [item?.imageUrl, item?.category]);
@@ -132,16 +137,23 @@ export function ItemCard({ item, loading }: ItemCardProps) {
   return (
     <Card className="overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group border-none bg-white shadow-lg shadow-slate-200/50 ring-1 ring-slate-200/60 rounded-[32px]">
       <Link href={`/items/${item.id}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden">
-          <Image
-            src={displayImage}
-            alt={item.title || 'Campus Item'}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-            data-ai-hint={imageHint}
-            onError={() => setImgError(true)}
-            unoptimized={displayImage.startsWith('data:')}
-          />
+        <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 flex items-center justify-center">
+          {imgError && !item.imageUrl ? (
+            <div className="flex flex-col items-center gap-2 text-slate-300">
+              <ImageOff className="h-10 w-10" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Image missing</span>
+            </div>
+          ) : (
+            <Image
+              src={displayImage}
+              alt={item.title || 'Campus Item'}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
+              data-ai-hint={imageHint}
+              onError={() => setImgError(true)}
+              unoptimized={displayImage.startsWith('data:')}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
           
           <Badge

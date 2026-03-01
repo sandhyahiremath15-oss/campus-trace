@@ -3,43 +3,43 @@
     {
       "id": "electronics",
       "description": "Lost electronic device",
-      "imageUrl": "https://images.unsplash.com/photo-1502096472573-eaac515392c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxlbGVjdHJvbmljcyUyMHNtYXJ0cGhvbmV8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "electronics smartphone"
     },
     {
       "id": "apparel",
       "description": "Lost glasses, jacket or accessories",
-      "imageUrl": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-      "imageHint": "sunglasses spectacles"
+      "imageUrl": "https://images.unsplash.com/photo-1495121605193-b116b5b9c5fe?q=80&w=1080&auto=format&fit=crop",
+      "imageHint": "clothing accessories"
     },
     {
       "id": "stationery",
       "description": "Lost notebook or pen",
-      "imageUrl": "https://images.unsplash.com/photo-1624627283905-5a6747e72d3e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzdGF0aW9uZXJ5JTIwbm90ZWJvb2t8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "stationery notebook"
+      "imageUrl": "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=1080&auto=format&fit=crop",
+      "imageHint": "notebook stationery"
     },
     {
       "id": "keys",
       "description": "Lost keys",
-      "imageUrl": "https://images.unsplash.com/photo-1582139329536-e7284fece509?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1582139329536-e7284fece509?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "house keys"
     },
     {
       "id": "wallets",
       "description": "Lost wallet",
-      "imageUrl": "https://images.unsplash.com/photo-1627123424574-724758594e93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1627123424574-724758594e93?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "leather wallet"
     },
     {
       "id": "other",
       "description": "General campus item",
-      "imageUrl": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "campus library"
     },
     {
       "id": "hero-image",
       "description": "Campus community helping each other",
-      "imageUrl": "https://images.unsplash.com/photo-1741636174266-a090f9427ec0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYW1wdXMlMjBjb21tdW5pdHl8ZW58MHx8fHwxNzcyMjg0MTk3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=1080&auto=format&fit=crop",
       "imageHint": "campus community"
     }
   ]
